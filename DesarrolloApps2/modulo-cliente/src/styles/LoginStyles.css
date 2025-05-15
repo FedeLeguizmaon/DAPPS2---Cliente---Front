@@ -1,0 +1,99 @@
+.login {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-image: linear-gradient(to bottom, #3498db, #ffffff);
+  padding: 20px;
+  min-width: 100vh;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.login-header h3 {
+  font-size: 2em;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.login-header p {
+  font-size: 0.9em;
+  color: #777;
+}
+
+.login-header a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.login-header a:hover {
+  text-decoration: underline;
+}
+
+.login form {
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  width: 300px;
+}
+
+.login form div {
+  margin-bottom: 15px;
+}
+
+.login-input {
+  width: calc(100% - 20px);
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1em;
+}
+
+.login-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+.login form h6 {
+  font-size: 0.8em;
+  color: #555;
+  margin-top: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.login form h6 a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.login form h6 a:hover {
+  text-decoration: underline;
+}
+
+.login-btn {
+  background-color: #007bff;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 4px;
+  font-size: 1em;
+  cursor: pointer;
+  width: 100%;
+}
+
+.login-btn:hover {
+  background-color: #0056b3;
+}
+
+.login-btn:focus {
+  outline: none;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
