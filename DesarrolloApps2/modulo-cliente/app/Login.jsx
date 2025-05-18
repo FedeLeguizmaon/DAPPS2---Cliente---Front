@@ -7,10 +7,11 @@ function Login({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const dispatch = useDispatch(); // Usa el hook de dispatch
 
   const handleSubmit = async () => {
-    console.log('Enviando formulario', email, password, rememberMe);
     // Aquí iría la lógica para enviar los datos de inicio de sesión
+    /*
     try {
       const response = await fetch('https://api.example.com/login', {
         method: 'POST',
@@ -29,6 +30,17 @@ function Login({ navigation }) {
     } catch (error) {
       console.error('Error al enviar el formulario', error);
     }
+      */
+    const userData = {
+      email: 'fede',
+      password: '123',
+      name: 'Thomas',
+      surname: 'Anderson',
+      address: '123 Main St, London, UK',
+      phone: '(+44) 20 1234 5629',
+    };
+    dispatch(loginSuccess(userData));
+    navigation.navigate('Home');
   };
   
 
@@ -46,12 +58,10 @@ function Login({ navigation }) {
   };
 
   const handleRegister = () => {
-    // Aquí iría la lógica para navegar a la pantalla de registro
-    // Usando React Navigation:
     if (navigation) {
-      navigation.navigate('Register'); // Asegúrate de que 'Register' esté definido en tus rutas
+      navigation.navigate('Register');
     } else {
-      console.warn('La navegación no está disponible.');
+      alert('La navegacion no esta disponible');
     }
   };
 

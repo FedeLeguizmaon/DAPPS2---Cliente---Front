@@ -5,6 +5,7 @@ import Register from './Register.jsx';
 import ChangePassword from './ChangePassword.jsx';
 import Home from './Home.jsx';
 import store from '../store/index.js';
+import Profile from './Profile.jsx';
 import { Provider, useSelector } from 'react-redux';
 
 const Stack = createNativeStackNavigator();
@@ -23,6 +24,7 @@ function AppNavigator() {
       <Stack.Screen name="Register" component={Register} options={{ title: 'Registrarse' }} />
       <Stack.Screen name='ChangePassword' component={ChangePassword} options={{ title: 'Change Password' }} />
       <Stack.Screen name="Home" component={Home} options={{ title: 'Inicio' }} />
+      <Stack.Screen name="Profile" component={Profile} options={{ title: 'Perfil' }} />
     </Stack.Navigator>
   );
 }

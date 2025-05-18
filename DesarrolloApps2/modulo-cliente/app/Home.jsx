@@ -8,38 +8,29 @@ import { useNavigation } from '@react-navigation/native'; // Si estás usando Re
 // Importa tus iconos (puedes usar bibliotecas como react-native-vector-icons)
 // import Icon from 'react-native-vector-icons/FontAwesome';
 
-function Home() {
-  const navigation = useNavigation(); // Si estás usando React Navigation
+function Home({ navigation }) {
 
   // Datos de ejemplo para las categorías (basado en los iconos que veo)
   const categories = [
-    { name: 'Burger', icon: require('C:\\Proyectos\\DesarrolloApps2\\modulo-cliente\\assets\\images\\Cheese Burger.png') },
-    { name: 'Taco', icon: require('C:\\Proyectos\\DesarrolloApps2\\modulo-cliente\\assets\\images\\taco.png') },
-    { name: 'Burrito', icon: require('C:\\Proyectos\\DesarrolloApps2\\modulo-cliente\\assets\\images\\burrito.png') },
-    { name: 'Drink', icon: require('C:\\Proyectos\\DesarrolloApps2\\modulo-cliente\\assets\\images\\drink.png') },
-    { name: 'Pizza', icon: require('C:\\Proyectos\\DesarrolloApps2\\modulo-cliente\\assets\\images\\pizza.png') },
-    { name: 'Donut', icon: require('C:\\Proyectos\\DesarrolloApps2\\modulo-cliente\\assets\\images\\donut.png') },
-    { name: 'Salad', icon: require('C:\\Proyectos\\DesarrolloApps2\\modulo-cliente\\assets\\images\\salad.png') },
-    { name: 'Noodles', icon: require('C:\\Proyectos\\DesarrolloApps2\\modulo-cliente\\assets\\images\\noodles.png') },
-    { name: 'Sandwich', icon: require('C:\\Proyectos\\DesarrolloApps2\\modulo-cliente\\assets\\images\\sandwich.png') },
-    { name: 'Pasta', icon: require('C:\\Proyectos\\DesarrolloApps2\\modulo-cliente\\assets\\images\\pasta.png') },
-    { name: 'Ice Cream', icon: require('C:\\Proyectos\\DesarrolloApps2\\modulo-cliente\\assets\\images\\icecream.png') },
+    { name: 'Burger', icon: require('../assets/images/Cheese Burger.png') },
+    { name: 'Taco', icon: require('../assets/images/taco.png') },
+    { name: 'Burrito', icon: require('../assets/images/burrito.png') },
+    { name: 'Drink', icon: require('../assets/images/drink.png') },
+    { name: 'Pizza', icon: require('../assets/images/pizza.png') },
+    { name: 'Donut', icon: require('../assets/images/donut.png') },
+    { name: 'Salad', icon: require('../assets/images/salad.png') },
+    { name: 'Noodles', icon: require('../assets/images/noodles.png') },
+    { name: 'Sandwich', icon: require('../assets/images/sandwich.png') },
+    { name: 'Pasta', icon: require('../assets/images/pasta.png') },
+    { name: 'Ice Cream', icon: require('../assets/images/icecream.png') },
   ];
 
   // Datos de ejemplo para las ofertas especiales
   const specialOffers = [
-    { id: 1, name: 'Mega Burger', image: require('C:\\Proyectos\\DesarrolloApps2\\modulo-cliente\\assets\\images\\Cheese Burger.png'), price: '$10.99' }, // Reemplaza con tus datos e imágenes
-    { id: 2, name: 'Delicious Pizza', image: require('C:\\Proyectos\\DesarrolloApps2\\modulo-cliente\\assets\\images\\pizza.png'), price: '$15.50' },
+    { id: 1, name: 'Mega Burger', image: require('../assets/images/Cheese Burger.png'), price: '$10.99' },
+    { id: 2, name: 'Delicious Pizza', image: require('../assets/images/pizza.png'), price: '$15.50' },
     // ... más ofertas
   ];
-
-  const navigateToScreen = (screenName) => {
-    if (navigation) {
-      navigation.navigate(screenName);
-    } else {
-      console.warn('Navigation prop not available');
-    }
-  };
 
   return (
     <View style={styles.container}>
@@ -66,7 +57,7 @@ function Home() {
           <Text style={styles.bannerDiscount}>40% OFF</Text>
           {/* Imagen de la promoción */}
           <Image
-            source={require('C:\\Proyectos\\DesarrolloApps2\\modulo-cliente\\assets\\images\\icecream.png')} // Reemplaza con tu imagen
+            source={require('../assets/images/icecream.png')} // Reemplaza con tu imagen
             style={styles.bannerImage}
             resizeMode="cover"
           />
@@ -137,22 +128,22 @@ function Home() {
           </View>
           <Text style={styles.navText}>Home</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigateToScreen('Orders')}>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Orders')}>
           {/* Icono de Lista/Pedidos */}
           <Text style={styles.navIcon}>📄</Text>
           <Text style={styles.navText}>Orders</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigateToScreen('Favorites')}>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Favorites')}>
           {/* Icono de Corazón/Favoritos */}
           <Text style={styles.navIcon}>❤️</Text>
           <Text style={styles.navText}>Favorites</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigateToScreen('Notifications')}>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Notifications')}>
           {/* Icono de Campana/Notificaciones */}
           <Text style={styles.navIcon}>🔔</Text>
           <Text style={styles.navText}>Notifications</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigateToScreen('Profile')}>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Profile')}>
           {/* Icono de Usuario/Perfil */}
           <Text style={styles.navIcon}>👤</Text>
           <Text style={styles.navText}>Profile</Text>

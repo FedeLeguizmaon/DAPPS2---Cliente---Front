@@ -9,12 +9,14 @@ const initialState = {
 const authReducer = (state = initialState, action) => {
   switch (action.type) {
     case LOGIN_SUCCESS:
+      console.log('Login success action:', action.payload);
       return {
         ...state,
         user: action.payload,
         isAuthenticated: true,
       };
     case LOGOUT:
+      console.log('Logout action');
       return {
         ...state,
         user: null,
