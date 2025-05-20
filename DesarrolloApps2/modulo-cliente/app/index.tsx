@@ -11,6 +11,8 @@ import Cart from './Cart.jsx';
 import Product from './Product.jsx';
 import Restaurant from './Restaurant.jsx';
 import RestaurantCatalogue from './RestaurantCatalogue.jsx';
+import Checkout from './Checkout.jsx'
+import OrderTrackingScreen from './OrderTracker.jsx';
 import { Provider, useSelector } from 'react-redux';
 
 const Stack = createNativeStackNavigator();
@@ -35,6 +37,8 @@ function AppNavigator() {
       <Stack.Screen name="Product" component={Product} options={{ title: 'Producto' }} />
       <Stack.Screen name="Restaurant" component={Restaurant} options={{ title: 'Restaurante' }} />
       <Stack.Screen name="RestaurantCatalogue" component={RestaurantCatalogue} options={{ title: 'Catálogo de Restaurantes' }} />
+      <Stack.Screen name="Checkout" component={Checkout} options={{ title: 'Checkout' }} />
+      <Stack.Screen name="OrderTracking" component={OrderTrackingScreen} options={{ title: 'Seguimiento de Pedido' }} />
     </Stack.Navigator>
   );
 }

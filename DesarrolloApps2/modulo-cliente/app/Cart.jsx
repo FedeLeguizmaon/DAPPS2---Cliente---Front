@@ -2,6 +2,12 @@ import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { removeFromCart, updateCartItemQuantity } from '../store/actions/cartActions';
+import { useNavigation } from '@react-navigation/native'; // Importar useNavigation de React Navigation
+
+// No necesitamos estas importaciones si usamos @react-navigation/native-stack
+// import { navigate } from 'expo-router/build/global-state/routing';
+// import { useRouter } from 'expo-router';
+// import { useNavigation } from 'expo-router'; // Esta se elimina ya que la de @react-navigation/native es la correcta
 
 const CartItem = ({ item }) => {
   const dispatch = useDispatch();
@@ -49,9 +55,14 @@ const CartItem = ({ item }) => {
   );
 };
 
-const Cart = ({ navigation }) => {
+const Cart = () => { // Aquí cambiamos de ({ navigation }) a () porque usaremos el hook
   const cartItems = useSelector(state => state.cart.items);
   const cartTotal = useSelector(state => state.cart.total);
+  const navigation = useNavigation(); // Usamos el hook useNavigation de @react-navigation/native
+
+  const handlerCheckout = () => {
+    navigation.navigate('Checkout'); // Usamos navigation.navigate para ir a Checkout
+  };
 
   return (
     <View style={styles.container}>
@@ -131,7 +142,7 @@ const Cart = ({ navigation }) => {
       {/* Bottom Button */}
       <View style={styles.bottomBar}>
         <Text style={styles.bottomBarTotal}>£ {cartTotal.toFixed(2)}</Text>
-        <TouchableOpacity style={styles.placeOrderButton}>
+        <TouchableOpacity style={styles.placeOrderButton} onPress={handlerCheckout}>
           <Text style={styles.placeOrderText}>Place Order</Text>
         </TouchableOpacity>
       </View>
@@ -149,7 +160,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 15,
-    paddingTop: 15,
+    paddingTop: 50, // Ajuste para el StatusBar
     marginBottom: 15,
   },
   backButton: {
@@ -165,13 +176,13 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   addItemsButton: {
-    backgroundColor: '#fdecea', // Similar al color del botón "Add Items"
+    backgroundColor: '#fdecea',
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 20,
   },
   addItemsText: {
-    color: '#e91e63', // Similar al color del texto "Add Items"
+    color: '#e91e63',
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -240,7 +251,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   removeItem: {
-    // Puedes usar iconos aquí en lugar de texto
     flexDirection: 'row',
   },
   editIcon: {
