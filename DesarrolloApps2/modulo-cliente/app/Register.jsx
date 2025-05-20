@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
 import { useDispatch, connect } from 'react-redux'; // Importa el hook de dispatch
 import { loginSuccess } from '../store/actions/authActions'; // Importa la acción de login
+import { api } from '../utils/api';
 
 function Register({ navigation }) { // Recibimos 'navigation' si estamos usando React Navigation
   const [email, setEmail] = useState('');
@@ -18,33 +19,23 @@ function Register({ navigation }) { // Recibimos 'navigation' si estamos usando 
     console.log('Enviando formulario de registro', email, password, phoneNumber, name, surname, address);
 
     try {
-      const response = await fetch('http://localhost:8080/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          email: email,
-          password: password,
-          nombre: name,
-          apellido: surname,
-          telefono: phoneNumber,
-          direccion: address
-        })
+      const data = await api.post('/auth/register', {
+        email: email,
+        password: password,
+        nombre: name,
+        apellido: surname,
+        telefono: phoneNumber,
+        direccion: address
       });
 
-      console.log('Response status:', response.status);
-      const data = await response.json();
-      console.log('Response data:', data);
-      
-      if (!response.ok) {
-        setMessage(data.message || 'Error en el registro');
-        throw new Error(data.message || 'Error en el registro');
-      }
-      
       // Si el registro es exitoso
-      dispatch(loginSuccess(data));
+      const { token, ...userData } = data;
+      
+      // Guardamos el token en localStorage para uso futuro
+      localStorage.setItem('accessToken', token);
+      
+      // Disparamos la acción de login con los datos del usuario
+      dispatch(loginSuccess({ ...userData, token }));
       navigation.navigate('Home');
       
     } catch (error) {
