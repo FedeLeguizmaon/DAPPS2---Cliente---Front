@@ -8,32 +8,66 @@ function Login({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState('');
   const dispatch = useDispatch(); // Usa el hook de dispatch
+
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
   const handleSubmit = async () => {
     try {
+      setError(''); // Limpiar errores previos
+
+      // Validar formato de email
+      if (!validateEmail(email)) {
+        setError('Por favor, ingrese un email válido');
+        return;
+      }
+
+      // Validar que la contraseña no esté vacía
+      if (!password.trim()) {
+        setError('Por favor, ingrese su contraseña');
+        return;
+      }
+
       const data = await api.post('/auth/login', {
         email,
         password
       });
 
-      // Si el login es exitoso
       const { token, ...userData } = data;
-      
-      // Guardamos el token en localStorage para uso futuro
       localStorage.setItem('accessToken', token);
-      
-      // Disparamos la acción de login con los datos del usuario
       dispatch(loginSuccess({ ...userData, token }));
       navigation.navigate('Home');
       
     } catch (error) {
       console.error('Error:', error);
-      alert(error.message || 'Error al conectar con el servidor');
+      // Verificar si el error es por credenciales inválidas (400, 401, 403)
+      if (error.message.includes('Error en la petici')) {
+        setError('Combinación de email/password errónea');
+      } else {
+        setError('No es posible conectarse con el servidor');
+      }
     }
   };
   
+  const handleEmailChange = (text) => {
+    setEmail(text);
+    // Limpiar error de formato de email si el usuario está escribiendo
+    if (error === 'Por favor, ingrese un email válido') {
+      setError('');
+    }
+  };
 
+  const handlePasswordChange = (text) => {
+    setPassword(text);
+    // Limpiar error de contraseña vacía si el usuario está escribiendo
+    if (error === 'Por favor, ingrese su contraseña') {
+      setError('');
+    }
+  };
 
   const handleRememberMeChange = (value) => {
     setRememberMe(value);
@@ -70,23 +104,27 @@ function Login({ navigation }) {
         </Text>
       </View>
       <View style={styles.form}>
+        {error ? (
+          <Text style={styles.errorText}>{error}</Text>
+        ) : null}
         <View style={styles.inputContainer}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, error ? styles.inputError : null]}
             type="email"
             placeholder="Email..."
             value={email}
-            onChangeText={(text) => setEmail(text)}
+            onChangeText={handleEmailChange}
             keyboardType="email-address"
+            autoCapitalize="none"
           />
         </View>
         <View style={styles.inputContainer}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, error ? styles.inputError : null]}
             type="password"
             placeholder="Contraseña..."
             value={password}
-            onChangeText={(text) => setPassword(text)}
+            onChangeText={handlePasswordChange}
             secureTextEntry
           />
         </View>
@@ -179,6 +217,15 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  errorText: {
+    color: '#FF0000',
+    fontSize: 14,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  inputError: {
+    borderColor: '#FF0000',
   },
 });
 

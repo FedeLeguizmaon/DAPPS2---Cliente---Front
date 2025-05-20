@@ -11,14 +11,88 @@ function Register({ navigation }) { // Recibimos 'navigation' si estamos usando 
   const [name, setName] = useState('');
   const [surname, setSurname] = useState('');
   const [address, setAddress] = useState('');
-  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
 
   const dispatch = useDispatch();
 
-  const handleSubmit = async () => {
-    console.log('Enviando formulario de registro', email, password, phoneNumber, name, surname, address);
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const checkEmailAvailability = async (email) => {
+    if (!validateEmail(email)) {
+      return;
+    }
 
     try {
+      setIsCheckingEmail(true);
+      const response = await api.get(`/users/check-email?email=${email}`);
+      if (response.exists) {
+        setError('El email ya está registrado');
+      }
+    } catch (error) {
+      console.error('Error al verificar email:', error);
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  };
+
+  const handleEmailChange = (text) => {
+    setEmail(text);
+    setError(''); // Limpiar errores previos
+    
+    // Esperar 500ms después de que el usuario deje de escribir
+    const timeoutId = setTimeout(() => {
+      if (validateEmail(text)) {
+        checkEmailAvailability(text);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setError(''); // Limpiar errores previos
+
+      // Validar formato de email
+      if (!validateEmail(email)) {
+        setError('Por favor, ingrese un email válido');
+        return;
+      }
+
+      // Validar que la contraseña no esté vacía
+      if (!password.trim()) {
+        setError('Por favor, ingrese una contraseña');
+        return;
+      }
+
+      // Validar que el nombre no esté vacío
+      if (!name.trim()) {
+        setError('Por favor, ingrese su nombre');
+        return;
+      }
+
+      // Validar que el apellido no esté vacío
+      if (!surname.trim()) {
+        setError('Por favor, ingrese su apellido');
+        return;
+      }
+
+      // Validar que la dirección no esté vacía
+      if (!address.trim()) {
+        setError('Por favor, ingrese su dirección');
+        return;
+      }
+
+      // Validar que el teléfono no esté vacío
+      if (!phoneNumber.trim()) {
+        setError('Por favor, ingrese su teléfono');
+        return;
+      }
+
       const data = await api.post('/auth/register', {
         email: email,
         password: password,
@@ -28,19 +102,53 @@ function Register({ navigation }) { // Recibimos 'navigation' si estamos usando 
         direccion: address
       });
 
-      // Si el registro es exitoso
       const { token, ...userData } = data;
-      
-      // Guardamos el token en localStorage para uso futuro
       localStorage.setItem('accessToken', token);
-      
-      // Disparamos la acción de login con los datos del usuario
       dispatch(loginSuccess({ ...userData, token }));
       navigation.navigate('Home');
       
     } catch (error) {
       console.error('Error:', error);
-      setMessage(error.message || 'Error al conectar con el servidor');
+      if (error.message.includes('Error en la petici')) {
+        setError('El email ya está registrado');
+      } else {
+        setError('No es posible conectarse con el servidor');
+      }
+    }
+  };
+
+  const handlePasswordChange = (text) => {
+    setPassword(text);
+    if (error === 'Por favor, ingrese una contraseña') {
+      setError('');
+    }
+  };
+
+  const handleNameChange = (text) => {
+    setName(text);
+    if (error === 'Por favor, ingrese su nombre') {
+      setError('');
+    }
+  };
+
+  const handleSurnameChange = (text) => {
+    setSurname(text);
+    if (error === 'Por favor, ingrese su apellido') {
+      setError('');
+    }
+  };
+
+  const handleAddressChange = (text) => {
+    setAddress(text);
+    if (error === 'Por favor, ingrese su dirección') {
+      setError('');
+    }
+  };
+
+  const handlePhoneChange = (text) => {
+    setPhoneNumber(text);
+    if (error === 'Por favor, ingrese su teléfono') {
+      setError('');
     }
   };
 
@@ -69,59 +177,66 @@ function Register({ navigation }) { // Recibimos 'navigation' si estamos usando 
         </Text>
       </View>
       <View style={styles.form}>
+        {error ? (
+          <Text style={styles.errorText}>{error}</Text>
+        ) : null}
+        {isCheckingEmail && (
+          <Text style={styles.checkingText}>Verificando disponibilidad del email...</Text>
+        )}
         <View style={styles.inputContainer}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, error ? styles.inputError : null]}
             type="text"
             placeholder="Nombre..."
             value={name}
-            onChangeText={(text) => setName(text)}
+            onChangeText={handleNameChange}
           />
         </View>
         <View style={styles.inputContainer}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, error ? styles.inputError : null]}
             type="text"
             placeholder="Apellido..."
             value={surname}
-            onChangeText={(text) => setSurname(text)}
+            onChangeText={handleSurnameChange}
           />
         </View>
         <View style={styles.inputContainer}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, error ? styles.inputError : null]}
             type="email"
             placeholder="Email..."
             value={email}
-            onChangeText={(text) => setEmail(text)}
+            onChangeText={handleEmailChange}
             keyboardType="email-address"
+            autoCapitalize="none"
           />
         </View>
         <View style={styles.inputContainer}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, error ? styles.inputError : null]}
             type="password"
             placeholder="Contraseña..."
             value={password}
-            onChangeText={(text) => setPassword(text)}
+            onChangeText={handlePasswordChange}
             secureTextEntry
           />
         </View>
         <View style={styles.inputContainer}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, error ? styles.inputError : null]}
             type="text"
             placeholder="Dirección..."
             value={address}
-            onChangeText={(text) => setAddress(text)}
+            onChangeText={handleAddressChange}
           />
         </View>
         <View style={styles.inputContainer}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, error ? styles.inputError : null]}
             placeholder="Teléfono..."
             value={phoneNumber}
-            onChangeText={(text) => setPhoneNumber(text)}
+            onChangeText={handlePhoneChange}
             keyboardType="phone-pad"
           />
         </View>
@@ -185,6 +300,22 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  errorText: {
+    color: '#FF0000',
+    fontSize: 14,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  inputError: {
+    borderColor: '#FF0000',
+  },
+  checkingText: {
+    color: '#666',
+    fontSize: 12,
+    marginBottom: 10,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
 
