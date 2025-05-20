@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, Image, Switch } from 'react-native';
 import { useDispatch, connect } from 'react-redux'; // Importa el hook de dispatch
 import { loginSuccess } from '../store/actions/authActions'; // Importa la acción de login
-import { api } from '../utils/api';
 
 function Login({ navigation }) {
   const [email, setEmail] = useState('');
@@ -11,26 +10,37 @@ function Login({ navigation }) {
   const dispatch = useDispatch(); // Usa el hook de dispatch
 
   const handleSubmit = async () => {
+    // Aquí iría la lógica para enviar los datos de inicio de sesión
+    /*
     try {
-      const data = await api.post('/auth/login', {
-        email,
-        password
+      const response = await fetch('https://api.example.com/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
       });
-
-      // Si el login es exitoso
-      const { token, ...userData } = data;
-      
-      // Guardamos el token en localStorage para uso futuro
-      localStorage.setItem('accessToken', token);
-      
-      // Disparamos la acción de login con los datos del usuario
-      dispatch(loginSuccess({ ...userData, token }));
-      navigation.navigate('Home');
-      
+      if (response.ok) {
+        const data = await response.json();
+        loginSuccess(data);
+        navigation.navigate('Home');
+      } else {
+        console.error('Error de autenticación');
+      }
     } catch (error) {
-      console.error('Error:', error);
-      alert(error.message || 'Error al conectar con el servidor');
+      console.error('Error al enviar el formulario', error);
     }
+      */
+    const userData = {
+      email: 'fede',
+      password: '123',
+      name: 'Thomas',
+      surname: 'Anderson',
+      address: '123 Main St, London, UK',
+      phone: '(+44) 20 1234 5629',
+    };
+    dispatch(loginSuccess(userData));
+    navigation.navigate('Home');
   };
   
 

@@ -1,12 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, TextInput, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native'; // Si estás usando React Navigation
-
-// Importa tus componentes (por ejemplo, para las ofertas especiales)
-// import SpecialOfferCard from './components/SpecialOfferCard';
-
-// Importa tus iconos (puedes usar bibliotecas como react-native-vector-icons)
-// import Icon from 'react-native-vector-icons/FontAwesome';
+import { StyleSheet, View, Text, TextInput, ScrollView, TouchableOpacity, Image, StatusBar } from 'react-native'; // Importamos StatusBar
 
 function Home({ navigation }) {
 
@@ -23,72 +16,97 @@ function Home({ navigation }) {
     { name: 'Sandwich', icon: require('../assets/images/sandwich.png') },
     { name: 'Pasta', icon: require('../assets/images/pasta.png') },
     { name: 'Ice Cream', icon: require('../assets/images/icecream.png') },
+    { name: 'More...', icon: null }, // Agregamos una categoría "Más"
   ];
 
   // Datos de ejemplo para las ofertas especiales
   const specialOffers = [
-    { id: 1, name: 'Mega Burger', image: require('../assets/images/Cheese Burger.png'), price: '$10.99' },
-    { id: 2, name: 'Delicious Pizza', image: require('../assets/images/pizza.png'), price: '$15.50' },
+    { id: 1, name: 'Mega Burger', image: { uri: 'https://via.placeholder.com/200x150' }, price: '$10.99' },
+    { id: 2, name: 'Delicious Pizza', image: { uri: 'https://via.placeholder.com/200x150' }, price: '$15.50' },
     // ... más ofertas
   ];
 
+  // Función para manejar la navegación desde la barra de búsqueda
+  const handleSearchPress = () => {
+    navigation.navigate('RestaurantCatalogue', { selectedCategory: 'All' });
+  };
+
+  // Función para manejar la navegación al tocar una categoría
+  const handleCategoryPress = (categoryName) => {
+    navigation.navigate('RestaurantCatalogue', { selectedCategory: categoryName });
+  };
+
   return (
     <View style={styles.container}>
+      {/* Agregamos el componente StatusBar para manejar la barra superior del teléfono */}
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
       {/* Barra superior (Deliver to, Search, Filter) */}
       <View style={styles.topBar}>
         <View style={styles.locationContainer}>
           <Text style={styles.deliverToText}>Deliver to</Text>
           <TouchableOpacity style={styles.locationButton}>
             <Text style={styles.locationText}>Select Your Location</Text>
-            {/* Puedes usar un icono aquí */}
             <Text style={styles.locationArrow}>▼</Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.cartButton}>
-          {/* Puedes usar un icono de carrito aquí */}
+        <TouchableOpacity style={styles.cartButton} onPress={() => navigation.navigate('Cart')}>
           <Text style={styles.cartIcon}>🛒</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Banner de promociones */}
-      <ScrollView horizontal style={styles.bannerScrollView}>
-        <View style={styles.bannerCard}>
-          <Text style={styles.bannerTitle}>GET YOUR SWEET ICE CREAM</Text>
-          <Text style={styles.bannerDiscount}>40% OFF</Text>
-          {/* Imagen de la promoción */}
+      {/* Banner de promociones - Ajuste en height y padding */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bannerScrollViewContent}>
+        <View style={[styles.bannerCard, { backgroundColor: '#ffe082' }]}>
+          <View style={styles.bannerTextContent}>
+            <Text style={styles.bannerTitle}>ICE CREAM DAY</Text>
+            <Text style={styles.bannerSecondaryTitle}>GET YOUR SWEET</Text>
+            <Text style={styles.bannerPrimaryTitle}>ICE CREAM</Text>
+            <Text style={styles.bannerDiscount}>40% OFF</Text>
+          </View>
           <Image
-            source={require('../assets/images/icecream.png')} // Reemplaza con tu imagen
+            source={{ uri: 'https://via.placeholder.com/100' }}
             style={styles.bannerImage}
-            resizeMode="cover"
+            resizeMode="contain"
           />
         </View>
-        {/* Puedes añadir más banners aquí */}
-        <View style={styles.bannerCard}>
-          <Text style={styles.bannerTitle}>Another Great Offer</Text>
-          <Text style={styles.bannerDiscount}>25% OFF</Text>
-          {/* Otra imagen de promoción */}
+        <View style={[styles.bannerCard, { backgroundColor: '#FFD700' }]}>
+          <View style={styles.bannerTextContent}>
+            <Text style={styles.bannerTitle}>Delicious Deals</Text>
+            <Text style={styles.bannerSecondaryTitle}>GRAB IT NOW</Text>
+            <Text style={styles.bannerPrimaryTitle}>BIG SAVINGS</Text>
+            <Text style={styles.bannerDiscount}>25% OFF</Text>
+          </View>
+          <Image
+            source={{ uri: 'https://via.placeholder.com/100' }}
+            style={styles.bannerImage}
+            resizeMode="contain"
+          />
         </View>
       </ScrollView>
 
-      {/* Barra de búsqueda */}
-      <View style={styles.searchBar}>
-        {/* Puedes usar un icono de lupa aquí */}
+      {/* Barra de búsqueda - Ahora redirige al RestaurantCatalogue */}
+      <TouchableOpacity style={styles.searchBar} onPress={handleSearchPress}>
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
           style={styles.searchInput}
           placeholder="Search for food or restaurants"
+          editable={false}
         />
-        {/* Puedes añadir un icono de filtro aquí */}
         <TouchableOpacity style={styles.filterButton}>
-          <Text style={styles.filterIcon}>Filter</Text>
+          <Text style={styles.filterIcon}>⚙️</Text>
         </TouchableOpacity>
-      </View>
+      </TouchableOpacity>
 
-      {/* Categorías */}
+      {/* Categorías - Ahora redirigen al RestaurantCatalogue */}
       <View style={styles.categoriesContainer}>
         {categories.map((category, index) => (
-          <TouchableOpacity key={index} style={styles.categoryButton}>
-            <Image source={category.icon} style={styles.categoryIcon} resizeMode="contain" />
+          <TouchableOpacity key={index} style={styles.categoryButton} onPress={() => handleCategoryPress(category.name)}>
+            {category.icon ? (
+              <Image source={category.icon} style={styles.categoryIcon} resizeMode="contain" />
+            ) : (
+              <Text style={styles.categoryIconPlaceholder}>...</Text>
+            )}
             <Text style={styles.categoryText}>{category.name}</Text>
           </TouchableOpacity>
         ))}
@@ -102,7 +120,7 @@ function Home({ navigation }) {
             <Text style={styles.viewAllText}>View All {'>'}</Text>
           </TouchableOpacity>
         </View>
-        <ScrollView horizontal>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.specialOffersScrollViewContent}>
           {specialOffers.map((offer) => (
             <TouchableOpacity key={offer.id} style={styles.specialOfferCard}>
               <Image source={offer.image} style={styles.specialOfferImage} resizeMode="cover" />
@@ -110,9 +128,8 @@ function Home({ navigation }) {
                 <Text style={styles.specialOfferName}>{offer.name}</Text>
                 <Text style={styles.specialOfferPrice}>{offer.price}</Text>
               </View>
-              {/* Puedes añadir un botón de "Me gusta" aquí */}
               <TouchableOpacity style={styles.likeButton}>
-                <Text>❤️</Text>
+                <Text style={styles.likeIcon}>❤️</Text>
               </TouchableOpacity>
             </TouchableOpacity>
           ))}
@@ -121,31 +138,26 @@ function Home({ navigation }) {
 
       {/* Barra de navegación inferior */}
       <View style={styles.bottomNavigationBar}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigateToScreen('Home')}>
-          {/* Icono de Home */}
-          <View style={styles.activeNavIcon}>
-            <Text style={styles.activeNavText}>🏠</Text>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
+          <View style={styles.activeNavIconBg}>
+            <Text style={styles.activeNavIcon}>🏠</Text>
           </View>
           <Text style={styles.navText}>Home</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Orders')}>
-          {/* Icono de Lista/Pedidos */}
           <Text style={styles.navIcon}>📄</Text>
           <Text style={styles.navText}>Orders</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Favorites')}>
-          {/* Icono de Corazón/Favoritos */}
           <Text style={styles.navIcon}>❤️</Text>
           <Text style={styles.navText}>Favorites</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Notifications')}>
-          {/* Icono de Campana/Notificaciones */}
           <Text style={styles.navIcon}>🔔</Text>
           <Text style={styles.navText}>Notifications</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Profile')}>
-          {/* Icono de Usuario/Perfil */}
-          <Text style={styles.navIcon}>👤</Text>
+          <Image source={{ uri: 'https://via.placeholder.com/24' }} style={styles.profileNavIcon} />
           <Text style={styles.navText}>Profile</Text>
         </TouchableOpacity>
       </View>
@@ -163,7 +175,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 15,
-    paddingTop: 15,
+    paddingTop: 50, // Ajuste para el statusBar
     marginBottom: 10,
   },
   locationContainer: {
@@ -181,42 +193,55 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginRight: 5,
+    color: '#333',
   },
   locationArrow: {
     fontSize: 14,
-    color: '#e91e63', // Un color similar al de la referencia
+    color: '#e91e63',
   },
   cartButton: {
     padding: 10,
-    // Estilos para el icono del carrito
   },
   cartIcon: {
     fontSize: 24,
+    color: '#333',
   },
-  bannerScrollView: {
+  bannerScrollViewContent: { // Nuevo estilo para el ScrollView de banners
     paddingHorizontal: 15,
-    marginBottom: 15,
+    paddingBottom: 10, // Un pequeño padding para que el contenido no toque el borde inferior del scrollview
   },
   bannerCard: {
-    backgroundColor: '#ffe082', // Un color similar al del banner
     borderRadius: 10,
-    width: 300, // Ancho aproximado
-    height: 150, // Alto aproximado
+    width: 300, // Ancho fijo para la tarjeta
+    height: 150, // Altura fija para la tarjeta
     marginRight: 10,
     padding: 15,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    overflow: 'hidden', // Asegura que nada se desborde fuera de la tarjeta
+  },
+  bannerTextContent: {
+    flex: 1, // Para que el texto ocupe el espacio disponible
+    marginRight: 10, // Espacio entre el texto y la imagen
   },
   bannerTitle: {
+    fontSize: 14,
+    color: '#333',
+  },
+  bannerSecondaryTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
+  },
+  bannerPrimaryTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#e91e63',
     marginBottom: 5,
-    flex: 1,
   },
   bannerDiscount: {
-    fontSize: 20,
+    fontSize: 18,
     color: '#e91e63',
     fontWeight: 'bold',
   },
@@ -228,53 +253,75 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 15,
     backgroundColor: '#f0f0f0',
     borderRadius: 8,
-    marginBottom: 15,
+    marginHorizontal: 15,
+    marginBottom: 20,
+    paddingHorizontal: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   searchIcon: {
     fontSize: 20,
-    color: '#666',
+    color: '#777',
     marginRight: 10,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
     paddingVertical: 10,
+    color: '#333',
   },
   filterButton: {
     padding: 10,
-    // Estilos para el botón de filtro
   },
   filterIcon: {
-    fontSize: 16,
-    color: '#007bff',
+    fontSize: 20,
+    color: '#333',
   },
   categoriesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 10,
+    paddingHorizontal: 5,
     marginBottom: 20,
     justifyContent: 'space-around',
   },
   categoryButton: {
-    width: '20%', // Ajusta según sea necesario
+    width: '24%',
     alignItems: 'center',
     marginBottom: 15,
+    paddingVertical: 10,
   },
   categoryIcon: {
-    width: 40,
-    height: 40,
+    width: 45,
+    height: 45,
+    marginBottom: 5,
+  },
+  categoryIconPlaceholder: {
+    width: 45,
+    height: 45,
+    borderRadius: 25,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    textAlign: 'center',
+    lineHeight: 45,
+    fontSize: 24,
+    color: '#777',
+    marginBottom: 5,
   },
   categoryText: {
     fontSize: 12,
     marginTop: 5,
     textAlign: 'center',
+    color: '#333',
   },
   specialOffersSection: {
     paddingHorizontal: 15,
-    marginBottom: 20,
+    marginBottom: 80,
   },
   specialOffersHeader: {
     flexDirection: 'row',
@@ -285,70 +332,110 @@ const styles = StyleSheet.create({
   specialOffersTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#333',
   },
   viewAllText: {
     color: '#e91e63',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  specialOffersScrollViewContent: {
+    paddingBottom: 10,
   },
   specialOfferCard: {
-    width: 200, // Ancho aproximado de la tarjeta
+    width: 180,
     borderRadius: 10,
-    backgroundColor: '#f9f9f9',
-    marginRight: 10,
+    backgroundColor: '#fff',
+    marginRight: 15,
     padding: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
   specialOfferImage: {
     width: '100%',
     height: 100,
     borderRadius: 8,
-    marginBottom: 5,
+    marginBottom: 8,
   },
   specialOfferDetails: {
-    // Estilos para el nombre y precio
+    flex: 1,
+    paddingHorizontal: 2,
   },
   specialOfferName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 2,
   },
   specialOfferPrice: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: '#777',
   },
   likeButton: {
     position: 'absolute',
-    top: 5,
-    right: 5,
-    padding: 5,
-    // Estilos para el botón de "Me gusta"
+    top: 15,
+    right: 15,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  likeIcon: {
+    fontSize: 16,
+    color: '#e91e63',
   },
   bottomNavigationBar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#eee',
     paddingVertical: 10,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 5,
   },
   navItem: {
     flex: 1,
     alignItems: 'center',
+    paddingVertical: 5,
   },
   navIcon: {
-    fontSize: 24,
+    fontSize: 22,
     color: '#666',
+    marginBottom: 4,
+  },
+  activeNavIconBg: {
+    backgroundColor: '#fdecea',
+    borderRadius: 20,
+    padding: 8,
+    marginBottom: 4,
   },
   activeNavIcon: {
-    fontSize: 24,
+    fontSize: 22,
     color: '#e91e63',
   },
   navText: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#666',
   },
-  activeNavText: {
-    fontSize: 24,
-    color: '#e91e63',
+  profileNavIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginBottom: 4,
   },
 });
 

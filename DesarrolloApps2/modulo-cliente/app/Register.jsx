@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
 import { useDispatch, connect } from 'react-redux'; // Importa el hook de dispatch
 import { loginSuccess } from '../store/actions/authActions'; // Importa la acción de login
-import { api } from '../utils/api';
 
 function Register({ navigation }) { // Recibimos 'navigation' si estamos usando React Navigation
   const [email, setEmail] = useState('');
@@ -13,34 +12,36 @@ function Register({ navigation }) { // Recibimos 'navigation' si estamos usando 
   const [address, setAddress] = useState('');
   const [message, setMessage] = useState('');
 
-  const dispatch = useDispatch();
-
   const handleSubmit = async () => {
-    console.log('Enviando formulario de registro', email, password, phoneNumber, name, surname, address);
+    console.log('Enviando formulario de registro', email, password, phoneNumber);
 
+    const userData = {
+      email: email,
+      password: password,
+      phoneNumber: phoneNumber,
+      name: name,
+      surname: surname,
+      address: address,
+    };
     try {
-      const data = await api.post('/auth/register', {
-        email: email,
-        password: password,
-        nombre: name,
-        apellido: surname,
-        telefono: phoneNumber,
-        direccion: address
+      const response = await fetch('https://api.example.com/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
       });
 
-      // Si el registro es exitoso
-      const { token, ...userData } = data;
-      
-      // Guardamos el token en localStorage para uso futuro
-      localStorage.setItem('accessToken', token);
-      
-      // Disparamos la acción de login con los datos del usuario
-      dispatch(loginSuccess({ ...userData, token }));
-      navigation.navigate('Home');
-      
+      if (response.ok) {
+        const data = await response.json();
+        loginSuccess(data); // Dispatch de la acción de login
+        navigation.navigate('Home');
+      } else {
+        const errorData = await response.json();
+        console.log('Error en el registro', errorData);
+      }
     } catch (error) {
-      console.error('Error:', error);
-      setMessage(error.message || 'Error al conectar con el servidor');
+      console.error('Error al enviar el formulario de registro', error);
     }
   };
 
