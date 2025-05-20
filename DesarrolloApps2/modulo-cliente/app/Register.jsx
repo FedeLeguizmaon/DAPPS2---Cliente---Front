@@ -12,36 +12,44 @@ function Register({ navigation }) { // Recibimos 'navigation' si estamos usando 
   const [address, setAddress] = useState('');
   const [message, setMessage] = useState('');
 
-  const handleSubmit = async () => {
-    console.log('Enviando formulario de registro', email, password, phoneNumber);
+  const dispatch = useDispatch();
 
-    const userData = {
-      email: email,
-      password: password,
-      phoneNumber: phoneNumber,
-      name: name,
-      surname: surname,
-      address: address,
-    };
+  const handleSubmit = async () => {
+    console.log('Enviando formulario de registro', email, password, phoneNumber, name, surname, address);
+
     try {
-      const response = await fetch('https://api.example.com/register', {
+      const response = await fetch('http://localhost:8080/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify(userData),
+        body: JSON.stringify({
+          email: email,
+          password: password,
+          nombre: name,
+          apellido: surname,
+          telefono: phoneNumber,
+          direccion: address
+        })
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        loginSuccess(data); // Dispatch de la acción de login
-        navigation.navigate('Home');
-      } else {
-        const errorData = await response.json();
-        console.log('Error en el registro', errorData);
+      console.log('Response status:', response.status);
+      const data = await response.json();
+      console.log('Response data:', data);
+      
+      if (!response.ok) {
+        setMessage(data.message || 'Error en el registro');
+        throw new Error(data.message || 'Error en el registro');
       }
+      
+      // Si el registro es exitoso
+      dispatch(loginSuccess(data));
+      navigation.navigate('Home');
+      
     } catch (error) {
-      console.error('Error al enviar el formulario de registro', error);
+      console.error('Error:', error);
+      setMessage(error.message || 'Error al conectar con el servidor');
     }
   };
 
