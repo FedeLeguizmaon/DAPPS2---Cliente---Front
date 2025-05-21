@@ -1,8 +1,8 @@
 import React from 'react';
 import { StyleSheet, View, Text, TextInput, ScrollView, TouchableOpacity, Image, StatusBar } from 'react-native'; // Importamos StatusBar
-
-function Home({ navigation }) {
-
+import { useNavigation } from '@react-navigation/native';
+function Home({ }) {
+const navigation = useNavigation();
   // Datos de ejemplo para las categorías (basado en los iconos que veo)
   const categories = [
     { name: 'Burger', icon: require('../assets/images/Cheese Burger.png') },
