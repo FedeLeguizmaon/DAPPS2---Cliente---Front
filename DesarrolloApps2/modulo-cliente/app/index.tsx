@@ -7,6 +7,10 @@ import Home from './Home.jsx';
 import store from '../store/index.js';
 import Profile from './Profile.jsx';
 import Orders from './Orders.jsx';
+import Cart from './Cart.jsx';
+import Product from './Product.jsx';
+import Restaurant from './Restaurant.jsx';
+import RestaurantCatalogue from './RestaurantCatalogue.jsx';
 import { Provider, useSelector } from 'react-redux';
 
 const Stack = createNativeStackNavigator();
@@ -27,6 +31,10 @@ function AppNavigator() {
       <Stack.Screen name="Home" component={Home} options={{ title: 'Inicio' }} />
       <Stack.Screen name="Profile" component={Profile} options={{ title: 'Perfil' }} />
       <Stack.Screen name="Orders" component={Orders} options={{ title: 'Órdenes' }} />
+      <Stack.Screen name="Cart" component={Cart} options={{ title: 'Carrito' }} />
+      <Stack.Screen name="Product" component={Product} options={{ title: 'Producto' }} />
+      <Stack.Screen name="Restaurant" component={Restaurant} options={{ title: 'Restaurante' }} />
+      <Stack.Screen name="RestaurantCatalogue" component={RestaurantCatalogue} options={{ title: 'Catálogo de Restaurantes' }} />
     </Stack.Navigator>
   );
 }

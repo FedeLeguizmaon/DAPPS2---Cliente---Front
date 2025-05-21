@@ -1,58 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView, TextInput, Modal } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../store/actions/authActions';
 import { loginSuccess } from '../store/actions/authActions';
-import { api } from '../utils/api';
 
 const Profile = ({ navigation }) => {
   const user = useSelector((state) => state.auth.user);
   const dispatch = useDispatch();
   const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState('');
-  const [editSurname, setEditSurname] = useState('');
-  const [editPhone, setEditPhone] = useState('');
-  const [editEmail, setEditEmail] = useState('');
+  const [editName, setEditName] = useState(user?.name || '');
+  const [editSurname, setEditSurname] = useState(user?.surname || '');
+  const [editPhone, setEditPhone] = useState(user?.phone || '');
+  const [editEmail, setEditEmail] = useState(user?.email || '');
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetchUserData();
-  }, []);
-
-  const fetchUserData = async () => {
-    try {
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        throw new Error('No hay token de acceso');
-      }
-
-      const userData = await api.get('/users/token');
-      dispatch(loginSuccess(userData));
-      setEditName(userData.nombre || '');
-      setEditSurname(userData.apellido || '');
-      setEditPhone(userData.telefono || '');
-      setEditEmail(userData.email || '');
-    } catch (error) {
-      console.error('Error al obtener datos del usuario:', error);
-      if (error.message === 'No hay token de acceso' || error.message.includes('401')) {
-        // Si no hay token o el token es inválido, redirigir al login
-        dispatch(logout());
-        navigation.navigate('Login');
-      } else {
-        alert('Error al cargar los datos del usuario');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleLogoutPress = () => {
     setIsLogoutModalVisible(true);
   };
 
   const handleLogoutConfirm = () => {
-    localStorage.removeItem('accessToken');
     dispatch(logout());
     navigation.navigate('Login');
     setIsLogoutModalVisible(false);
@@ -68,45 +34,24 @@ const Profile = ({ navigation }) => {
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    setEditName(user?.nombre || '');
-    setEditSurname(user?.apellido || '');
-    setEditPhone(user?.telefono || '');
+    setEditName(user?.name || '');
+    setEditSurname(user?.surname || '');
+    setEditPhone(user?.phone || '');
     setEditEmail(user?.email || '');
   };
 
   const handleSaveEdit = async () => {
-    try {
-      const updatedData = {
-        nombre: editName,
-        apellido: editSurname,
-        telefono: editPhone,
-        email: editEmail,
-      };
-
-      if (!user?.id) {
-        throw new Error('ID de usuario no encontrado');
-      }
-
-      const response = await api.put(`/users/${user.id}`, updatedData);
-      dispatch(loginSuccess(response));
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Error al actualizar datos:', error);
-      if (error.message === 'ID de usuario no encontrado') {
-        alert('Error: No se pudo identificar al usuario');
-      } else {
-        alert('Error al actualizar los datos del usuario');
-      }
-    }
+    // Aquí iría la lógica para guardar los cambios del usuario
+    const userData = {
+      name: editName,
+      surname: editSurname,
+      phone: editPhone,
+      email: editEmail,
+    };
+    console.log('Información del usuario actualizada:', userData);
+    dispatch(loginSuccess(userData));
+    setIsEditing(false);
   };
-
-  if (isLoading) {
-    return (
-      <View style={styles.container}>
-        <Text>Cargando...</Text>
-      </View>
-    );
-  }
 
   return (
     <ScrollView style={styles.container}>
@@ -116,7 +61,7 @@ const Profile = ({ navigation }) => {
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Usuario</Text>
-        <View style={styles.moreButton} />
+        <View style={styles.moreButton} /> {/* Espacio para el botón de "..." */}
       </View>
 
       {/* User Info */}
@@ -130,14 +75,14 @@ const Profile = ({ navigation }) => {
             <Text style={styles.editButtonText}>✏️</Text>
           </TouchableOpacity>
         </View>
-        <Text style={styles.userName}>{user ? `${user.nombre} ${user.apellido}` : 'Nombre de Usuario'}</Text>
+        <Text style={styles.userName}>{user ? (user.name + ' ' + user.surname) : 'Nombre de Usuario'}</Text>
         <View style={styles.contactInfo}>
           <Text>📞</Text>
-          <Text>{user?.telefono || ''}</Text>
+          <Text>{user?.phone || ''}</Text>
         </View>
         <View style={styles.contactInfo}>
           <Text>✉️</Text>
-          <Text>{user?.email || ''}</Text>
+          <Text>{user?.email || 'thomas.abc.inc@gmail.com'}</Text>
         </View>
       </View>
 
@@ -149,7 +94,7 @@ const Profile = ({ navigation }) => {
             <Text>📞</Text>
             <TextInput
               style={styles.editInput}
-              placeholder="Teléfono"
+              placeholder="(+44) 20 1234 5629"
               value={editPhone}
               onChangeText={setEditPhone}
               keyboardType="phone-pad"
@@ -159,7 +104,7 @@ const Profile = ({ navigation }) => {
             <Text>✉️</Text>
             <TextInput
               style={styles.editInput}
-              placeholder="Email"
+              placeholder="thomas.abc.inc@gmail.com"
               value={editEmail}
               onChangeText={setEditEmail}
               keyboardType="email-address"
@@ -169,18 +114,13 @@ const Profile = ({ navigation }) => {
             <Text>👤</Text>
             <TextInput
               style={styles.editInput}
-              placeholder="Nombre"
-              value={editName}
-              onChangeText={setEditName}
-            />
-          </View>
-          <View style={styles.editInputContainer}>
-            <Text>👤</Text>
-            <TextInput
-              style={styles.editInput}
-              placeholder="Apellido"
-              value={editSurname}
-              onChangeText={setEditSurname}
+              placeholder="Thomas K. Wilson"
+              value={`${editName} ${editSurname}`}
+              onChangeText={(text) => {
+                const parts = text.split(' ');
+                setEditName(parts[0] || '');
+                setEditSurname(parts.slice(1).join(' ') || '');
+              }}
             />
           </View>
           <View style={styles.editButtons}>
