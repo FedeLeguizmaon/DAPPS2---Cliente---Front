@@ -21,6 +21,22 @@ function Register({ navigation }) { // Recibimos 'navigation' si estamos usando 
     return emailRegex.test(email);
   };
 
+  const validatePassword = (password) => {
+    // Mínimo 8 caracteres, al menos una letra mayúscula, una minúscula, un número y un carácter especial
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return passwordRegex.test(password);
+  };
+
+  const getPasswordError = (password) => {
+    if (!password) return 'La contraseña es requerida';
+    if (password.length < 8) return 'La contraseña debe tener al menos 8 caracteres';
+    if (!/[A-Z]/.test(password)) return 'Debe contener al menos una letra mayúscula';
+    if (!/[a-z]/.test(password)) return 'Debe contener al menos una letra minúscula';
+    if (!/\d/.test(password)) return 'Debe contener al menos un número';
+    if (!/[@$!%*?&]/.test(password)) return 'Debe contener al menos un carácter especial (@$!%*?&)';
+    return '';
+  };
+
   const checkEmailAvailability = async (email) => {
     if (!validateEmail(email)) {
       return;
@@ -55,7 +71,7 @@ function Register({ navigation }) { // Recibimos 'navigation' si estamos usando 
 
   const handleSubmit = async () => {
     try {
-      setError(''); // Limpiar errores previos
+      setError('');
 
       // Validar formato de email
       if (!validateEmail(email)) {
@@ -63,9 +79,10 @@ function Register({ navigation }) { // Recibimos 'navigation' si estamos usando 
         return;
       }
 
-      // Validar que la contraseña no esté vacía
-      if (!password.trim()) {
-        setError('Por favor, ingrese una contraseña');
+      // Validar contraseña segura
+      const passwordError = getPasswordError(password);
+      if (passwordError) {
+        setError(passwordError);
         return;
       }
 
@@ -222,6 +239,9 @@ function Register({ navigation }) { // Recibimos 'navigation' si estamos usando 
             secureTextEntry
           />
         </View>
+        <Text style={styles.passwordRequirements}>
+          La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial (@$!%*?&)
+        </Text>
         <View style={styles.inputContainer}>
           <TextInput
             style={[styles.input, error ? styles.inputError : null]}
@@ -314,6 +334,13 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 12,
     marginBottom: 10,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  passwordRequirements: {
+    color: '#666',
+    fontSize: 12,
+    marginBottom: 15,
     textAlign: 'center',
     fontStyle: 'italic',
   },
