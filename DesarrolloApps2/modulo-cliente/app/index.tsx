@@ -13,6 +13,10 @@ import Restaurant from './Restaurant.jsx';
 import RestaurantCatalogue from './RestaurantCatalogue.jsx';
 import Checkout from './Checkout.jsx'
 import OrderTrackingScreen from './OrderTracker.jsx';
+import Wallet from './Wallet.jsx';
+//import CheckoutProCargarSaldo from './CheckoutProCargarSaldo.jsx';
+import ExternalBrowserCargarSaldo from './ExternalBrowserCargarSaldo.jsx';
+import ComprarCrypto from './BuyCrypto.jsx';
 import { Provider, useSelector } from 'react-redux';
 
 const Stack = createNativeStackNavigator();
@@ -30,6 +34,8 @@ function AppNavigator() {
       <Stack.Screen name="Login" component={Login} options={{ title: 'Iniciar Sesión' }} />
       <Stack.Screen name="Register" component={Register} options={{ title: 'Registrarse' }} />
       <Stack.Screen name='ChangePassword' component={ChangePassword} options={{ title: 'Change Password' }} />
+      
+      {/* Pantallas principales */}
       <Stack.Screen name="Home" component={Home} options={{ title: 'Inicio' }} />
       <Stack.Screen name="Profile" component={Profile} options={{ title: 'Perfil' }} />
       <Stack.Screen name="Orders" component={Orders} options={{ title: 'Órdenes' }} />
@@ -39,6 +45,11 @@ function AppNavigator() {
       <Stack.Screen name="RestaurantCatalogue" component={RestaurantCatalogue} options={{ title: 'Catálogo de Restaurantes' }} />
       <Stack.Screen name="Checkout" component={Checkout} options={{ title: 'Checkout' }} />
       <Stack.Screen name="OrderTracking" component={OrderTrackingScreen} options={{ title: 'Seguimiento de Pedido' }} />
+      
+      {/* Pantallas de billetera */}
+      <Stack.Screen name="Wallet" component={Wallet} options={{ title: 'Mi Billetera' }} />
+      <Stack.Screen name="CargarSaldo" component={ExternalBrowserCargarSaldo} options={{ title: 'Cargar Saldo Real' }} />
+      <Stack.Screen name="ComprarCrypto" component={ComprarCrypto} options={{ title: 'Comprar Cripto' }} />
     </Stack.Navigator>
   );
 }
