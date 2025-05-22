@@ -4,10 +4,12 @@ import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../store/actions/authActions';
 import { loginSuccess } from '../store/actions/authActions';
 import { api } from '../utils/api';
+import { useNavigation } from '@react-navigation/native';
 
-const Profile = ({ navigation }) => {
+const Profile = () => {
   const user = useSelector((state) => state.auth.user);
   const dispatch = useDispatch();
+  const navigation = useNavigation();
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editSurname, setEditSurname] = useState('');

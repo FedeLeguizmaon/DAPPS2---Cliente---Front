@@ -3,13 +3,15 @@ import { StyleSheet, View, Text, TextInput, TouchableOpacity, Image, Switch } fr
 import { useDispatch, connect } from 'react-redux'; // Importa el hook de dispatch
 import { loginSuccess } from '../store/actions/authActions'; // Importa la acción de login
 import { api } from '../utils/api';
+import { useNavigation } from '@react-navigation/native'; // Importa el hook de navegación
 
-function Login({ navigation }) {
+function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const dispatch = useDispatch(); // Usa el hook de dispatch
+  const navigation = useNavigation(); // Usa el hook de navegación
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

@@ -4,10 +4,6 @@ import { useSelector, useDispatch } from 'react-redux';
 import { removeFromCart, updateCartItemQuantity } from '../store/actions/cartActions';
 import { useNavigation } from '@react-navigation/native'; // Importar useNavigation de React Navigation
 
-// No necesitamos estas importaciones si usamos @react-navigation/native-stack
-// import { navigate } from 'expo-router/build/global-state/routing';
-// import { useRouter } from 'expo-router';
-// import { useNavigation } from 'expo-router'; // Esta se elimina ya que la de @react-navigation/native es la correcta
 
 const CartItem = ({ item }) => {
   const dispatch = useDispatch();

@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView, Switch } from 'react-native'; // Agregamos Switch para las opciones adicionales
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../store/actions/cartActions'; // Importa la acción para añadir al carrito
+import { useNavigation } from '@react-navigation/native'; // Importa el hook de navegación
 
-function Product({ navigation, route }) {
+function Product({ route }) {
   // El producto se pasaría a través de las props de navegación (route.params.product)
   // Para propósitos de demostración, usaremos un producto de ejemplo
   const { product: initialProduct } = route.params || {
@@ -27,6 +28,7 @@ function Product({ navigation, route }) {
   const dispatch = useDispatch();
   const [quantity, setQuantity] = useState(1);
   const [selectedAddons, setSelectedAddons] = useState({});
+  const navigation = useNavigation();
 
   const handleDecreaseQuantity = () => {
     if (quantity > 1) {

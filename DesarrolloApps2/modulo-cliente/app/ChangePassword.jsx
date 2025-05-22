@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, Modal } from 'react-native';
 import { api } from '../utils/api';
+import { useNavigation } from '@react-navigation/native'; // Importa el hook de navegación
 
-function ChangePassword({ navigation }) {
+function ChangePassword() {
   const [email, setEmail] = useState('');
   const [token, setToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -10,6 +11,7 @@ function ChangePassword({ navigation }) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const navigation = useNavigation(); // Usa el hook de navegación
 
   const validatePassword = (password) => {
     // Mínimo 8 caracteres, al menos una letra mayúscula, una minúscula, un número y un carácter especial
