@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, Text, TextInput, ScrollView, TouchableOpacity, Image, StatusBar } from 'react-native'; // Importamos StatusBar
 import { useNavigation } from '@react-navigation/native';
+
 function Home({ }) {
 const navigation = useNavigation();
   // Datos de ejemplo para las categorías (basado en los iconos que veo)
@@ -50,9 +51,14 @@ const navigation = useNavigation();
             <Text style={styles.locationArrow}>▼</Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.cartButton} onPress={() => navigation.navigate('Cart')}>
-          <Text style={styles.cartIcon}>🛒</Text>
-        </TouchableOpacity>
+        <View style={styles.topBarButtons}>
+          <TouchableOpacity style={styles.walletButton} onPress={() => navigation.navigate('Wallet')}>
+            <Text style={styles.walletIcon}>💰</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.cartButton} onPress={() => navigation.navigate('Cart')}>
+            <Text style={styles.cartIcon}>🛒</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Banner de promociones - Ajuste en height y padding */}
@@ -70,6 +76,23 @@ const navigation = useNavigation();
             resizeMode="contain"
           />
         </View>
+        
+        {/* Nuevo banner para la billetera */}
+        <View style={[styles.bannerCard, { backgroundColor: '#e8f5e8' }]}>
+          <View style={styles.bannerTextContent}>
+            <Text style={styles.bannerTitle}>G7 WALLET</Text>
+            <Text style={styles.bannerSecondaryTitle}>CARGA SALDO</Text>
+            <Text style={styles.bannerPrimaryTitle}>COMPRA CRYPTO</Text>
+            <TouchableOpacity 
+              style={styles.walletBannerButton}
+              onPress={() => navigation.navigate('Wallet')}
+            >
+              <Text style={styles.walletBannerButtonText}>Ir a Billetera</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.bannerWalletIcon}>💰</Text>
+        </View>
+        
         <View style={[styles.bannerCard, { backgroundColor: '#FFD700' }]}>
           <View style={styles.bannerTextContent}>
             <Text style={styles.bannerTitle}>Delicious Deals</Text>
@@ -148,9 +171,9 @@ const navigation = useNavigation();
           <Text style={styles.navIcon}>📄</Text>
           <Text style={styles.navText}>Orders</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Favorites')}>
-          <Text style={styles.navIcon}>❤️</Text>
-          <Text style={styles.navText}>Favorites</Text>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Wallet')}>
+          <Text style={styles.navIcon}>💰</Text>
+          <Text style={styles.navText}>Wallet</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Notifications')}>
           <Text style={styles.navIcon}>🔔</Text>
@@ -198,6 +221,18 @@ const styles = StyleSheet.create({
   locationArrow: {
     fontSize: 14,
     color: '#e91e63',
+  },
+  topBarButtons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  walletButton: {
+    padding: 10,
+    backgroundColor: '#f0f8ff',
+    borderRadius: 20,
+  },
+  walletIcon: {
+    fontSize: 24,
   },
   cartButton: {
     padding: 10,
@@ -249,6 +284,22 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 8,
+  },
+  walletBannerButton: {
+    backgroundColor: '#4caf50',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginTop: 5,
+  },
+  walletBannerButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  bannerWalletIcon: {
+    fontSize: 60,
+    opacity: 0.3,
   },
   searchBar: {
     flexDirection: 'row',
