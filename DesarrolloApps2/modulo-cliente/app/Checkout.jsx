@@ -19,7 +19,7 @@ const Checkout = () => {
   };
 
   const handleTrackOrder = () => {
-    navigation.navigate('OrderTracking');
+    navigation.navigate('OrderTracker');
   };
 
   return (

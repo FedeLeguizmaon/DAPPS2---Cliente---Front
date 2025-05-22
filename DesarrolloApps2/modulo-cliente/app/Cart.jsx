@@ -2,7 +2,8 @@ import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { removeFromCart, updateCartItemQuantity } from '../store/actions/cartActions';
-import { useNavigation } from '@react-navigation/native'; // Importar useNavigation de React Navigation
+import { useNavigation } from '@react-navigation/native';
+import Checkout from './Checkout';
 
 
 const CartItem = ({ item }) => {
@@ -51,13 +52,13 @@ const CartItem = ({ item }) => {
   );
 };
 
-const Cart = () => { // Aquí cambiamos de ({ navigation }) a () porque usaremos el hook
+const Cart = () => {
   const cartItems = useSelector(state => state.cart.items);
   const cartTotal = useSelector(state => state.cart.total);
-  const navigation = useNavigation(); // Usamos el hook useNavigation de @react-navigation/native
+  const navigation = useNavigation();
 
   const handlerCheckout = () => {
-    navigation.navigate('Checkout'); // Usamos navigation.navigate para ir a Checkout
+    navigation.navigate('Checkout');
   };
 
   return (
@@ -119,7 +120,7 @@ const Cart = () => { // Aquí cambiamos de ({ navigation }) a () porque usaremos
       <View style={styles.totalsContainer}>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Subtotal</Text>
-          <Text style={styles.totalValue}>£ {cartTotal.toFixed(2)}</Text>
+          <Text style={styles.totalValue}>$ {cartTotal.toFixed(2)}</Text>
         </View>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Delivery Fee</Text>
@@ -131,13 +132,13 @@ const Cart = () => { // Aquí cambiamos de ({ navigation }) a () porque usaremos
         </View>
         <View style={styles.totalRow}>
           <Text style={styles.finalTotalLabel}>Total</Text>
-          <Text style={styles.finalTotalValue}>£ {cartTotal.toFixed(2)}</Text>
+          <Text style={styles.finalTotalValue}>$ {cartTotal.toFixed(2)}</Text>
         </View>
       </View>
 
       {/* Bottom Button */}
       <View style={styles.bottomBar}>
-        <Text style={styles.bottomBarTotal}>£ {cartTotal.toFixed(2)}</Text>
+        <Text style={styles.bottomBarTotal}>$ {cartTotal.toFixed(2)}</Text>
         <TouchableOpacity style={styles.placeOrderButton} onPress={handlerCheckout}>
           <Text style={styles.placeOrderText}>Place Order</Text>
         </TouchableOpacity>
