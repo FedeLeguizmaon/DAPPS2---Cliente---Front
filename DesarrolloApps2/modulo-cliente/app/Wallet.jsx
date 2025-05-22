@@ -35,7 +35,9 @@ const Wallet = () => {
         api.get('/wallet'),
         api.get('/wallet/transacciones')
       ]);
-      
+  
+      console.log('walletResponse:', walletResponse); // 👈 AGREGÁ ESTO
+  
       setWalletData(walletResponse);
       setTransacciones(transaccionesResponse);
     } catch (error) {
@@ -53,11 +55,11 @@ const Wallet = () => {
   };
 
   const handleCargarSaldo = () => {
-    navigation.navigate('CargarSaldo');
+    navigation.navigate('ExternalBrowserCargarSaldo');
   };
 
   const handleComprarCrypto = () => {
-    navigation.navigate('ComprarCrypto', { 
+    navigation.navigate('BuyCrypto', { 
       saldoPesos: walletData.saldoPesos,
       precioCrypto: walletData.precioCrypto 
     });
@@ -117,17 +119,10 @@ const Wallet = () => {
         >
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Mi Billetera Real</Text>
+        <Text style={styles.title}>Mi Billetera</Text>
         <TouchableOpacity onPress={onRefresh}>
           <Text style={styles.refreshButton}>🔄</Text>
         </TouchableOpacity>
-      </View>
-
-      {/* Banner de información */}
-      <View style={styles.infoBanner}>
-        <Text style={styles.infoBannerText}>
-          🔥 Integración REAL con MercadoPago - Ambiente de Pruebas
-        </Text>
       </View>
 
       {/* Saldo Cards */}
@@ -146,12 +141,12 @@ const Wallet = () => {
         </View>
 
         <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>G7Coin</Text>
+          <Text style={styles.balanceLabel}>TokenName</Text>
           <Text style={styles.cryptoAmount}>
-            {formatCrypto(walletData.saldoCrypto)} G7C
+            {formatCrypto(walletData.saldoCrypto)} TN
           </Text>
           <Text style={styles.cryptoPrice}>
-            1 G7C = {formatCurrency(walletData.precioCrypto)}
+            1 TN = {formatCurrency(walletData.precioCrypto)}
           </Text>
           <TouchableOpacity 
             style={[styles.actionButton, styles.cryptoButton]}
@@ -212,11 +207,12 @@ const Wallet = () => {
 
       {/* Información de testing */}
       <View style={styles.testingInfo}>
-        <Text style={styles.testingTitle}>🧪 Datos para Testing</Text>
+        <Text style={styles.testingTitle}>Datos para Testing</Text>
         <Text style={styles.testingText}>
           • Visa: 4509 9535 6623 3704{'\n'}
-          • CVV: cualquier 3 dígitos{'\n'}
-          • Fecha: cualquier fecha futura{'\n'}
+          • Nombre: APRO {'\n'}
+          • CVV: 123{'\n'}
+          • Fecha: 11/30{'\n'}
           • DNI: 12345678
         </Text>
       </View>

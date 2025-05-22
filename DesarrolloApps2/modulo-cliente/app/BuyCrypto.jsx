@@ -116,7 +116,7 @@ const BuyCrypto = () => {
         >
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Comprar G7Coin</Text>
+        <Text style={styles.title}>Comprar TNCoin</Text>
         <View style={styles.placeholder} />
       </View>
 

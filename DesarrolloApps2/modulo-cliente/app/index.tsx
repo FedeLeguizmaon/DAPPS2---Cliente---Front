@@ -13,9 +13,8 @@ import Restaurant from './Restaurant.jsx';
 import RestaurantCatalogue from './RestaurantCatalogue.jsx';
 import Checkout from './Checkout.jsx'
 import OrderTrackingScreen from './OrderTracker.jsx';
-import RealWallet from './Wallet.jsx';
-import RealCargarSaldo from './AddFunds.jsx';
-import CheckoutProCargarSaldo from './CheckoutProCargarSaldo.jsx';
+import Wallet from './Wallet.jsx';
+//import CheckoutProCargarSaldo from './CheckoutProCargarSaldo.jsx';
 import ExternalBrowserCargarSaldo from './ExternalBrowserCargarSaldo.jsx';
 import ComprarCrypto from './BuyCrypto.jsx';
 import { Provider, useSelector } from 'react-redux';
@@ -48,7 +47,7 @@ function AppNavigator() {
       <Stack.Screen name="OrderTracking" component={OrderTrackingScreen} options={{ title: 'Seguimiento de Pedido' }} />
       
       {/* Pantallas de billetera */}
-      <Stack.Screen name="Wallet" component={RealWallet} options={{ title: 'Mi Billetera Real' }} />
+      <Stack.Screen name="Wallet" component={Wallet} options={{ title: 'Mi Billetera' }} />
       <Stack.Screen name="CargarSaldo" component={ExternalBrowserCargarSaldo} options={{ title: 'Cargar Saldo Real' }} />
       <Stack.Screen name="ComprarCrypto" component={ComprarCrypto} options={{ title: 'Comprar Cripto' }} />
     </Stack.Navigator>

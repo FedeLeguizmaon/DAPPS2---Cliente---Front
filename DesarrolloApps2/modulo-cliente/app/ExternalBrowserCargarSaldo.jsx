@@ -57,55 +57,65 @@ const ExternalBrowserCargarSaldo = () => {
         throw new Error(response.error);
       }
 
-     
-      const paymentUrl = response.init_point; 
+      // Usar init_point para testing (no sandbox_init_point)
+      const paymentUrl = response.init_point;
       
       if (!paymentUrl) {
         throw new Error('No se pudo obtener la URL de pago de MercadoPago');
       }
 
-      // Abrir en navegador externo
       console.log('Payment URL:', paymentUrl);
       
-      Alert.alert(
-        'Ir a MercadoPago', 
-        `Se abrirá el navegador para completar el pago de ${monto}.\n\nURL: ${paymentUrl.substring(0, 50)}...`,
-        [
-          {
-            text: 'Cancelar',
-            style: 'cancel'
-          },
-          {
-            text: 'Copiar URL',
-            onPress: () => {
-              // Si tienes Clipboard API
-              console.log('URL para copiar:', paymentUrl);
-              Alert.alert('URL de Pago', paymentUrl);
-            }
-          },
-          {
-            text: 'Abrir MercadoPago',
-            onPress: async () => {
-              try {
-                const supported = await Linking.canOpenURL(paymentUrl);
-                if (supported) {
-                  await Linking.openURL(paymentUrl);
-                } else {
-                  Alert.alert('Error', `No se puede abrir el enlace. URL: ${paymentUrl}`);
-                }
-              } catch (error) {
-                console.error('Error opening URL:', error);
-                Alert.alert('Error', `No se pudo abrir el enlace: ${error.message}`);
+      // Intentar abrir automáticamente
+      try {
+        const supported = await Linking.canOpenURL(paymentUrl);
+        console.log('Can open URL:', supported);
+        
+        if (supported) {
+          await Linking.openURL(paymentUrl);
+          console.log('URL opened successfully');
+          
+          // Mostrar mensaje de éxito y regresar a wallet
+          Alert.alert(
+            'Redirigido a MercadoPago',
+            'Completa el pago en tu navegador. Una vez finalizado, regresa a la app para ver tu saldo actualizado.',
+            [{ 
+              text: 'Entendido', 
+              onPress: () => navigation.navigate('Wallet')
+            }]
+          );
+        } else {
+          // Si no puede abrir automáticamente, mostrar la URL
+          throw new Error('Cannot open URL automatically');
+        }
+      } catch (error) {
+        console.error('Error opening URL automatically:', error);
+        
+        // Fallback: mostrar la URL para copiar manualmente
+        Alert.alert(
+          'Ir a MercadoPago', 
+          `No se pudo abrir automáticamente. Copia esta URL en tu navegador:\n\n${paymentUrl}`,
+          [
+            {
+              text: 'Cancelar',
+              style: 'cancel'
+            },
+            {
+              text: 'Copiar URL',
+              onPress: () => {
+                // Mostrar la URL completa
+                Alert.alert('URL de Pago', paymentUrl, [
+                  { text: 'Cerrar' },
+                  { 
+                    text: 'Ir a Wallet',
+                    onPress: () => navigation.navigate('Wallet')
+                  }
+                ]);
               }
-              
-              // Volver a la pantalla de wallet después de un momento
-              setTimeout(() => {
-                navigation.navigate('Wallet');
-              }, 2000);
             }
-          }
-        ]
-      );
+          ]
+        );
+      }
       
     } catch (error) {
       console.error('Error creating preference:', error);
@@ -199,7 +209,7 @@ const ExternalBrowserCargarSaldo = () => {
         <View style={styles.instructionsCard}>
           <Text style={styles.instructionsTitle}>📋 Instrucciones</Text>
           <Text style={styles.instructionsText}>
-            1. Selecciona el monto y toca &quot;Ir a MercadoPago&quot;{'\n'}
+          1. Selecciona el monto y toca &quot;Ir a MercadoPago&quot;{'\n'}
             2. Se abrirá tu navegador con el checkout{'\n'}
             3. Completa el pago con los datos de prueba{'\n'}
             4. Regresa a la app para ver tu saldo actualizado{'\n'}
