@@ -1,31 +1,35 @@
 import React from 'react';
-import { StyleSheet, View, Text, TextInput, ScrollView, TouchableOpacity, Image, StatusBar } from 'react-native'; // Importamos StatusBar
+import { StyleSheet, View, Text, TextInput, ScrollView, TouchableOpacity, Image, StatusBar } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 function Home({ }) {
   const navigation = useNavigation();
   // Datos de ejemplo para las categorías (basado en los iconos que veo)
   const categories = [
-    { name: 'Burger', icon: require('../assets/images/Cheese Burger.png') },
+    { name: 'Hamburguesa', icon: require('../assets/images/Cheese Burger.png') },
     { name: 'Taco', icon: require('../assets/images/taco.png') },
     { name: 'Burrito', icon: require('../assets/images/burrito.png') },
-    { name: 'Drink', icon: require('../assets/images/drink.png') },
+    { name: 'Bebida', icon: require('../assets/images/drink.png') },
     { name: 'Pizza', icon: require('../assets/images/pizza.png') },
     { name: 'Donut', icon: require('../assets/images/donut.png') },
-    { name: 'Salad', icon: require('../assets/images/salad.png') },
-    { name: 'Noodles', icon: require('../assets/images/noodles.png') },
-    { name: 'Sandwich', icon: require('../assets/images/sandwich.png') },
+    { name: 'Ensalada', icon: require('../assets/images/salad.png') },
+    { name: 'Fideos', icon: require('../assets/images/noodles.png') },
+    { name: 'Sándwich', icon: require('../assets/images/sandwich.png') },
     { name: 'Pasta', icon: require('../assets/images/pasta.png') },
-    { name: 'Ice Cream', icon: require('../assets/images/icecream.png') },
-    { name: 'More...', icon: null }, // Agregamos una categoría "Más"
+    { name: 'Helado', icon: require('../assets/images/icecream.png') },
+    { name: 'Más...', icon: null }, // Agregamos una categoría "Más"
   ];
 
   // Datos de ejemplo para las ofertas especiales
   const specialOffers = [
-    { id: 1, name: 'Mega Burger', image: { uri: 'https://via.placeholder.com/200x150' }, price: '$10.99' },
-    { id: 2, name: 'Delicious Pizza', image: { uri: 'https://via.placeholder.com/200x150' }, price: '$15.50' },
-    // ... más ofertas
+    { id: 1, name: 'Mega Hamburguesa', image: require('../assets/images/Cheese Burger.png'), price: '$10.99' },
+    { id: 2, name: 'Pizza Deliciosa', image: require('../assets/images/pizza.png'), price: '$15.50' },
+    { id: 3, name: 'Ensalada Fresca', image: require('../assets/images/salad.png'), price: '$8.00' },
+    { id: 4, name: 'Fideos Picantes', image: require('../assets/images/noodles.png'), price: '$12.50' },
+    // Agregamos más ofertas para asegurar que haya suficiente contenido para desplazar
+    { id: 5, name: 'Wrap Vegano', image: require('../assets/images/burrito.png'), price: '$9.50' },
   ];
+
 
   // Función para manejar la navegación desde la barra de búsqueda
   const handleSearchPress = () => {
@@ -38,150 +42,152 @@ function Home({ }) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.fullScreenContainer}> {/* Contenedor principal que usa flex: 1 */}
       {/* Agregamos el componente StatusBar para manejar la barra superior del teléfono */}
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-      {/* Barra superior (Deliver to, Search, Filter) */}
-      <View style={styles.topBar}>
-        <View style={styles.locationContainer}>
-          <Text style={styles.deliverToText}>Deliver to</Text>
-          <TouchableOpacity style={styles.locationButton}>
-            <Text style={styles.locationText}>Select Your Location</Text>
-            <Text style={styles.locationArrow}>▼</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.topBarButtons}>
-          <TouchableOpacity style={styles.walletButton} onPress={() => navigation.navigate('Wallet')}>
-            <Text style={styles.walletIcon}>💰</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.cartButton} onPress={() => navigation.navigate('Cart')}>
-            <Text style={styles.cartIcon}>🛒</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Banner de promociones - Ajuste en height y padding */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bannerScrollViewContent}>
-        <View style={[styles.bannerCard, { backgroundColor: '#ffe082' }]}>
-          <View style={styles.bannerTextContent}>
-            <Text style={styles.bannerTitle}>ICE CREAM DAY</Text>
-            <Text style={styles.bannerSecondaryTitle}>GET YOUR SWEET</Text>
-            <Text style={styles.bannerPrimaryTitle}>ICE CREAM</Text>
-            <Text style={styles.bannerDiscount}>40% OFF</Text>
-          </View>
-          <Image
-            source={{ uri: 'https://via.placeholder.com/100' }}
-            style={styles.bannerImage}
-            resizeMode="contain"
-          />
-        </View>
-        
-        {/* Nuevo banner para la billetera */}
-        <View style={[styles.bannerCard, { backgroundColor: '#e8f5e8' }]}>
-          <View style={styles.bannerTextContent}>
-            <Text style={styles.bannerTitle}>G7 WALLET</Text>
-            <Text style={styles.bannerSecondaryTitle}>CARGA SALDO</Text>
-            <Text style={styles.bannerPrimaryTitle}>COMPRA CRYPTO</Text>
-            <TouchableOpacity 
-              style={styles.walletBannerButton}
-              onPress={() => navigation.navigate('Wallet')}
-            >
-              <Text style={styles.walletBannerButtonText}>Ir a Billetera</Text>
+      <ScrollView contentContainerStyle={styles.scrollViewContent}> {/* Aplica paddingBottom aquí */}
+        {/* Barra superior (Deliver to, Search, Filter) */}
+        <View style={styles.topBar}>
+          <View style={styles.locationContainer}>
+            <Text style={styles.deliverToText}>Entregar en</Text>
+            <TouchableOpacity style={styles.locationButton}>
+              <Text style={styles.locationText}>Seleccione su ubicacion</Text>
+              <Text style={styles.locationArrow}>▼</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.bannerWalletIcon}>💰</Text>
-        </View>
-        
-        <View style={[styles.bannerCard, { backgroundColor: '#FFD700' }]}>
-          <View style={styles.bannerTextContent}>
-            <Text style={styles.bannerTitle}>Delicious Deals</Text>
-            <Text style={styles.bannerSecondaryTitle}>GRAB IT NOW</Text>
-            <Text style={styles.bannerPrimaryTitle}>BIG SAVINGS</Text>
-            <Text style={styles.bannerDiscount}>25% OFF</Text>
+          <View style={styles.topBarButtons}>
+            <TouchableOpacity style={styles.walletButton} onPress={() => navigation.navigate('Wallet')}>
+              <Text style={styles.walletIcon}>💰</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.cartButton} onPress={() => navigation.navigate('Cart')}>
+              <Text style={styles.cartIcon}>🛒</Text>
+            </TouchableOpacity>
           </View>
-          <Image
-            source={{ uri: 'https://via.placeholder.com/100' }}
-            style={styles.bannerImage}
-            resizeMode="contain"
-          />
         </View>
-      </ScrollView>
 
-      {/* Barra de búsqueda - Ahora redirige al RestaurantCatalogue */}
-      <TouchableOpacity style={styles.searchBar} onPress={handleSearchPress}>
-        <Text style={styles.searchIcon}>🔍</Text>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search for food or restaurants"
-          editable={false}
-        />
-        <TouchableOpacity style={styles.filterButton}>
-          <Text style={styles.filterIcon}>⚙️</Text>
-        </TouchableOpacity>
-      </TouchableOpacity>
+        {/* Banner de promociones - Ajuste en height y padding */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bannerScrollViewContent}>
+          <View style={[styles.bannerCard, { backgroundColor: '#ffe082' }]}>
+            <View style={styles.bannerTextContent}>
+              <Text style={styles.bannerTitle}>DIA DE HELADO</Text>
+              <Text style={styles.bannerSecondaryTitle}>COMPRE AHORA</Text>
+              <Text style={styles.bannerPrimaryTitle}>HELADO</Text>
+              <Text style={styles.bannerDiscount}>40% OFF</Text>
+            </View>
+            <Image
+              source={require('../assets/images/icecream.png')}
+              style={styles.bannerImage}
+              resizeMode="contain"
+            />
+          </View>
 
-      {/* Categorías - Ahora redirigen al RestaurantCatalogue */}
-      <View style={styles.categoriesContainer}>
-        {categories.map((category, index) => (
-          <TouchableOpacity key={index} style={styles.categoryButton} onPress={() => handleCategoryPress(category.name)}>
-            {category.icon ? (
-              <Image source={category.icon} style={styles.categoryIcon} resizeMode="contain" />
-            ) : (
-              <Text style={styles.categoryIconPlaceholder}>...</Text>
-            )}
-            <Text style={styles.categoryText}>{category.name}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Sección de ofertas especiales */}
-      <View style={styles.specialOffersSection}>
-        <View style={styles.specialOffersHeader}>
-          <Text style={styles.specialOffersTitle}>Special Offers</Text>
-          <TouchableOpacity onPress={() => console.log('View All Offers')}>
-            <Text style={styles.viewAllText}>View All {'>'}</Text>
-          </TouchableOpacity>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.specialOffersScrollViewContent}>
-          {specialOffers.map((offer) => (
-            <TouchableOpacity key={offer.id} style={styles.specialOfferCard}>
-              <Image source={offer.image} style={styles.specialOfferImage} resizeMode="cover" />
-              <View style={styles.specialOfferDetails}>
-                <Text style={styles.specialOfferName}>{offer.name}</Text>
-                <Text style={styles.specialOfferPrice}>{offer.price}</Text>
-              </View>
-              <TouchableOpacity style={styles.likeButton}>
-                <Text style={styles.likeIcon}>❤️</Text>
+          {/* Nuevo banner para la billetera */}
+          <View style={[styles.bannerCard, { backgroundColor: '#e8f5e8' }]}>
+            <View style={styles.bannerTextContent}>
+              <Text style={styles.bannerTitle}>G7 WALLET</Text>
+              <Text style={styles.bannerSecondaryTitle}>CARGA SALDO</Text>
+              <Text style={styles.bannerPrimaryTitle}>COMPRA CRYPTO</Text>
+              <TouchableOpacity
+                style={styles.walletBannerButton}
+                onPress={() => navigation.navigate('Wallet')}
+              >
+                <Text style={styles.walletBannerButtonText}>Ir a Billetera</Text>
               </TouchableOpacity>
+            </View>
+            <Text style={styles.bannerWalletIcon}>💰</Text>
+          </View>
+
+          <View style={[styles.bannerCard, { backgroundColor: '#FFD700' }]}>
+            <View style={styles.bannerTextContent}>
+              <Text style={styles.bannerTitle}>Ofertas Deliciosas</Text>
+              <Text style={styles.bannerSecondaryTitle}>COMPRE AHORA</Text>
+              <Text style={styles.bannerPrimaryTitle}>GRANDES DESCUENTOS</Text>
+              <Text style={styles.bannerDiscount}>25% OFF</Text>
+            </View>
+            <Image
+              source={require('../assets/images/donut.png')}
+              style={styles.bannerImage}
+              resizeMode="contain"
+            />
+          </View>
+        </ScrollView>
+
+        {/* Barra de búsqueda - Ahora redirige al RestaurantCatalogue */}
+        <TouchableOpacity style={styles.searchBar} onPress={handleSearchPress}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search for food or restaurants"
+            editable={false}
+          />
+          <TouchableOpacity style={styles.filterButton}>
+            <Text style={styles.filterIcon}>⚙️</Text>
+          </TouchableOpacity>
+        </TouchableOpacity>
+
+        {/* Categorías - Ahora redirigen al RestaurantCatalogue */}
+        <View style={styles.categoriesContainer}>
+          {categories.map((category, index) => (
+            <TouchableOpacity key={index} style={styles.categoryButton} onPress={() => handleCategoryPress(category.name)}>
+              {category.icon ? (
+                <Image source={category.icon} style={styles.categoryIcon} resizeMode="contain" />
+              ) : (
+                <Text style={styles.categoryIconPlaceholder}>...</Text>
+              )}
+              <Text style={styles.categoryText}>{category.name}</Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>
-      </View>
+        </View>
 
-      {/* Barra de navegación inferior */}
+        {/* Sección de ofertas especiales */}
+        <View style={styles.specialOffersSection}>
+          <View style={styles.specialOffersHeader}>
+            <Text style={styles.specialOffersTitle}>Ofertas Especiales</Text>
+            <TouchableOpacity onPress={() => console.log('View All Offers')}>
+              <Text style={styles.viewAllText}>Ver mas {'>'}</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.specialOffersScrollViewContent}>
+            {specialOffers.map((offer) => (
+              <TouchableOpacity key={offer.id} style={styles.specialOfferCard}>
+                <Image source={offer.image} style={styles.specialOfferImage} resizeMode="cover" />
+                <View style={styles.specialOfferDetails}>
+                  <Text style={styles.specialOfferName}>{offer.name}</Text>
+                  <Text style={styles.specialOfferPrice}>{offer.price}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+
+
+      </ScrollView>
+
+      {/* Barra de navegación inferior (permanece fuera del ScrollView y absoluto) */}
       <View style={styles.bottomNavigationBar}>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
           <View style={styles.activeNavIconBg}>
             <Text style={styles.activeNavIcon}>🏠</Text>
           </View>
-          <Text style={styles.navText}>Home</Text>
+          <Text style={styles.navText}>Inicio</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Orders')}>
           <Text style={styles.navIcon}>📄</Text>
-          <Text style={styles.navText}>Orders</Text>
+          <Text style={styles.navText}>Pedidos</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Wallet')}>
           <Text style={styles.navIcon}>💰</Text>
-          <Text style={styles.navText}>Wallet</Text>
+          <Text style={styles.navText}>Billetera</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Notifications')}>
           <Text style={styles.navIcon}>🔔</Text>
-          <Text style={styles.navText}>Notifications</Text>
+          <Text style={styles.navText}>Notificaciones</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Profile')}>
           <Image source={{ uri: 'https://via.placeholder.com/24' }} style={styles.profileNavIcon} />
-          <Text style={styles.navText}>Profile</Text>
+          <Text style={styles.navText}>Perfil</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -189,8 +195,15 @@ function Home({ }) {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  fullScreenContainer: { // Nuevo contenedor principal
     flex: 1,
+    backgroundColor: '#fff',
+  },
+  scrollViewContent: { // Estilo para el contentContainerStyle del ScrollView
+    paddingBottom: 80, // Ajusta este valor para que el contenido no quede debajo de la barra de navegación
+  },
+  container: { // Eliminar este estilo si ya no es el contenedor principal del ScrollView
+    // flex: 1, // Ya no es necesario si fullScreenContainer tiene flex: 1
     backgroundColor: '#fff',
   },
   topBar: {
@@ -241,24 +254,24 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#333',
   },
-  bannerScrollViewContent: { // Nuevo estilo para el ScrollView de banners
+  bannerScrollViewContent: {
     paddingHorizontal: 15,
-    paddingBottom: 10, // Un pequeño padding para que el contenido no toque el borde inferior del scrollview
+    paddingBottom: 10,
   },
   bannerCard: {
     borderRadius: 10,
-    width: 300, // Ancho fijo para la tarjeta
-    height: 150, // Altura fija para la tarjeta
+    width: 300,
+    height: 150,
     marginRight: 10,
     padding: 15,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    overflow: 'hidden', // Asegura que nada se desborde fuera de la tarjeta
+    overflow: 'hidden',
   },
   bannerTextContent: {
-    flex: 1, // Para que el texto ocupe el espacio disponible
-    marginRight: 10, // Espacio entre el texto y la imagen
+    flex: 1,
+    marginRight: 10,
   },
   bannerTitle: {
     fontSize: 14,
@@ -372,7 +385,7 @@ const styles = StyleSheet.create({
   },
   specialOffersSection: {
     paddingHorizontal: 15,
-    marginBottom: 80,
+    marginBottom: 20,
   },
   specialOffersHeader: {
     flexDirection: 'row',
@@ -406,10 +419,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   specialOfferImage: {
-    width: '100%',
-    height: 100,
+    width: '50%',
+    height: 75,
     borderRadius: 8,
-    marginBottom: 8,
   },
   specialOfferDetails: {
     flex: 1,
