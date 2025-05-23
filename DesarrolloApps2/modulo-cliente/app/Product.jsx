@@ -5,24 +5,27 @@ import { addToCart } from '../store/actions/cartActions'; // Importa la acción 
 import { useNavigation } from '@react-navigation/native'; // Importa el hook de navegación
 
 function Product({ route }) {
+  // Validación del producto inicial
+  const defaultProduct = {
+    id: 'default_product',
+    name: 'Producto',
+    originalPrice: 0.00,
+    currentPrice: 0.00,
+    rating: 0,
+    reviews: 0,
+    image: 'https://via.placeholder.com/300x200',
+    description: 'Descripción del producto',
+    additionalOptions: []
+  };
+
   // El producto se pasaría a través de las props de navegación (route.params.product)
-  // Para propósitos de demostración, usaremos un producto de ejemplo
-  const { product: initialProduct } = route.params || {
-    product: {
-      id: 'chicken_burger_1',
-      name: 'Chicken Burger',
-      originalPrice: 10.00,
-      currentPrice: 6.00,
-      rating: 4.9,
-      reviews: 1205,
-      image: 'https://via.placeholder.com/300x200', // Reemplaza con una imagen real
-      description: 'A delicious chicken burger served on a toasted bun with fresh lettuce, tomato slices, and mayonnaise. Juicy grilled chicken patty seasoned to perfection.',
-      additionalOptions: [
-        { id: 'add_cheese', name: 'Add Cheese', price: 0.50 },
-        { id: 'add_bacon', name: 'Add Bacon', price: 1.00 },
-        { id: 'add_meat', name: 'Add Meat (Extra Patty)', price: 2.00 },
-      ],
-    },
+  const { product: initialProduct } = route.params || { product: defaultProduct };
+
+  // Asegurarnos de que el producto tenga todos los campos necesarios
+  const product = {
+    ...defaultProduct,
+    ...initialProduct,
+    additionalOptions: initialProduct.additionalOptions || []
   };
 
   const dispatch = useDispatch();
@@ -53,7 +56,7 @@ function Product({ route }) {
   };
 
   const calculateTotalPrice = () => {
-    let price = initialProduct.currentPrice * quantity;
+    let price = product.currentPrice * quantity;
     for (const addonId in selectedAddons) {
       price += selectedAddons[addonId];
     }
@@ -62,14 +65,14 @@ function Product({ route }) {
 
   const handleAddToCart = () => {
     const itemToAdd = {
-      id: initialProduct.id,
-      name: initialProduct.name,
-      price: initialProduct.currentPrice, // El precio base del ítem
+      id: product.id,
+      name: product.name,
+      price: product.currentPrice, // El precio base del ítem
       quantity: quantity,
-      image: initialProduct.image,
+      image: product.image,
       // Incluir addons seleccionados en el item del carrito
       addons: Object.keys(selectedAddons).reduce((acc, addonId) => {
-        const addon = initialProduct.additionalOptions.find(opt => opt.id === addonId);
+        const addon = product.additionalOptions.find(opt => opt.id === addonId);
         if (addon) {
           acc[addon.name] = addon.price; // Guardamos el nombre y precio del addon
         }
@@ -86,7 +89,7 @@ function Product({ route }) {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Product Image */}
         <View style={styles.imageContainer}>
-          <Image source={{ uri: initialProduct.image }} style={styles.productImage} />
+          <Image source={{ uri: product.image }} style={styles.productImage} />
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
@@ -98,21 +101,21 @@ function Product({ route }) {
 
         {/* Product Details */}
         <View style={styles.detailsContainer}>
-          <Text style={styles.productName}>{initialProduct.name}</Text>
+          <Text style={styles.productName}>{product.name}</Text>
           <View style={styles.priceContainer}>
-            <Text style={styles.originalPrice}>$ {initialProduct.originalPrice.toFixed(2)}</Text>
-            <Text style={styles.currentPrice}>$ {initialProduct.currentPrice.toFixed(2)}</Text>
+            <Text style={styles.originalPrice}>$ {product.originalPrice.toFixed(2)}</Text>
+            <Text style={styles.currentPrice}>$ {product.currentPrice.toFixed(2)}</Text>
           </View>
           <View style={styles.ratingContainer}>
             <Text style={styles.ratingStar}>⭐</Text>
-            <Text style={styles.ratingValue}>{initialProduct.rating}</Text>
-            <Text style={styles.reviewCount}>({initialProduct.reviews})</Text>
+            <Text style={styles.ratingValue}>{product.rating}</Text>
+            <Text style={styles.reviewCount}>({product.reviews})</Text>
             <TouchableOpacity onPress={() => console.log('See all reviews')}>
               <Text style={styles.seeAllReviews}>Ver todas las reseñas</Text>
             </TouchableOpacity>
           </View>
           <Text style={styles.productDescription}>
-            {initialProduct.description}
+            {product.description}
           </Text>
           <TouchableOpacity onPress={() => console.log('See more description')}>
             <Text style={styles.seeMore}>Ver más</Text>
@@ -122,7 +125,7 @@ function Product({ route }) {
         {/* Additional Options */}
         <View style={styles.optionsContainer}>
           <Text style={styles.optionsTitle}>Opciones adicionales :</Text>
-          {initialProduct.additionalOptions.map((option) => (
+          {(product.additionalOptions || []).map((option) => (
             <View key={option.id} style={styles.optionItem}>
               <Text style={styles.optionName}>{option.name}</Text>
               <Text style={styles.optionPrice}>+ ${option.price.toFixed(2)}</Text>

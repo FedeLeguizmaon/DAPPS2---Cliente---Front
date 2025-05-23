@@ -3,8 +3,7 @@ import { Platform } from 'react-native';
 
 // CONFIGURACIÓN ESPECÍFICA PARA EXPO + ANDROID EMULATOR
 const API_BASE_URL = Platform.OS === 'android'
-  //? 'http://181.93.50.196:8080/api'  // Para Android Emulator
-  ? 'http://10.0.2.2:8080/api' // Para Android Emulator
+  ? 'http://10.0.2.2:8080/api'  // Para Android Emulator (10.0.2.2 es el alias de localhost)
   : 'https://b965-190-229-158-254.ngrok-free.app/api'; // Para iOS Simulator
 
 console.log('🔧 API configurada para:', Platform.OS);
