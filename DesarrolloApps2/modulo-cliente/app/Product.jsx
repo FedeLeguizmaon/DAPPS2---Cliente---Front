@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView, Switch } from 'react-native'; // Agregamos Switch para las opciones adicionales
+import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView, Switch, Alert } from 'react-native'; // Agregamos Switch para las opciones adicionales
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../store/actions/cartActions'; // Importa la acción para añadir al carrito
 import { useNavigation } from '@react-navigation/native'; // Importa el hook de navegación
+import { api } from '../utils/api'; // Importamos la utilidad de API
 
 function Product({ route }) {
   // Validación del producto inicial
@@ -32,6 +33,7 @@ function Product({ route }) {
   const [quantity, setQuantity] = useState(1);
   const [selectedAddons, setSelectedAddons] = useState({});
   const navigation = useNavigation();
+  const [isLoadingCalories, setIsLoadingCalories] = useState(false);
 
   const handleDecreaseQuantity = () => {
     if (quantity > 1) {
@@ -84,6 +86,31 @@ function Product({ route }) {
     console.log('Added to cart:', itemToAdd);
   };
 
+  const handleCaloriesEstimation = async () => {
+    try {
+      setIsLoadingCalories(true);
+      const response = await api.post('/ia/estimacion', {
+        plato: product.name
+      });
+
+      if (response.error) {
+        Alert.alert('Error', response.error);
+        return;
+      }
+
+      // Mostrar los resultados en un Alert con el formato correcto
+      Alert.alert(
+        'Estimación de Calorías',
+        `Plato: ${response.plato}\n\nCalorías: ${response.calorias_aproximadas} kcal\n\nComentario: ${response.comentario}`,
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo obtener la estimación de calorías');
+    } finally {
+      setIsLoadingCalories(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -101,7 +128,18 @@ function Product({ route }) {
 
         {/* Product Details */}
         <View style={styles.detailsContainer}>
-          <Text style={styles.productName}>{product.name}</Text>
+          <View style={styles.productNameContainer}>
+            <Text style={styles.productName}>{product.name}</Text>
+            <TouchableOpacity 
+              style={[styles.caloriesButton, isLoadingCalories && styles.caloriesButtonLoading]} 
+              onPress={handleCaloriesEstimation}
+              disabled={isLoadingCalories}
+            >
+              <Text style={styles.caloriesButtonText}>
+                {isLoadingCalories ? '⌛' : '🍽️'}
+              </Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.priceContainer}>
             <Text style={styles.originalPrice}>$ {product.originalPrice.toFixed(2)}</Text>
             <Text style={styles.currentPrice}>$ {product.currentPrice.toFixed(2)}</Text>
@@ -231,6 +269,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 5,
+  },
+  productNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 5,
   },
   productName: {
     fontSize: 24,
@@ -395,6 +439,27 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 18,
+  },
+  caloriesButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#e91e63',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  caloriesButtonLoading: {
+    backgroundColor: '#999',
+  },
+  caloriesButtonText: {
+    fontSize: 20,
+    color: '#fff',
   },
 });
 
