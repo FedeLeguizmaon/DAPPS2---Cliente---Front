@@ -9,24 +9,24 @@ function Product({ route }) {
   // Validación del producto inicial
   const defaultProduct = {
     id: 'default_product',
-    name: 'Producto',
+    name: 'Producto no disponible',
     originalPrice: 0.00,
     currentPrice: 0.00,
     rating: 0,
     reviews: 0,
     image: 'https://via.placeholder.com/300x200',
-    description: 'Descripción del producto',
-    additionalOptions: []
+    description: 'Descripción no disponible',
+    additionalOptions: [] // Asegurar que siempre existe
   };
 
   // El producto se pasaría a través de las props de navegación (route.params.product)
-  const { product: initialProduct } = route.params || { product: defaultProduct };
+  const initialProduct = route.params?.product || defaultProduct;
 
   // Asegurarnos de que el producto tenga todos los campos necesarios
   const product = {
     ...defaultProduct,
     ...initialProduct,
-    additionalOptions: initialProduct.additionalOptions || []
+    additionalOptions: initialProduct.additionalOptions || [] // Doble seguridad
   };
 
   const dispatch = useDispatch();
