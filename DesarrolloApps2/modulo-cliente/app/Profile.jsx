@@ -5,6 +5,8 @@ import { logout } from '../store/actions/authActions';
 import { loginSuccess } from '../store/actions/authActions';
 import { api } from '../utils/api';
 import { useNavigation } from '@react-navigation/native';
+// CORRECCIÓN: Importación correcta de AsyncStorage
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Profile = () => {
   const user = useSelector((state) => state.auth.user);
@@ -24,25 +26,34 @@ const Profile = () => {
 
   const fetchUserData = async () => {
     try {
-      const token = localStorage.getItem('accessToken');
+      // CORRECCIÓN: Await añadido y mejor manejo de errores
+      const token = await AsyncStorage.getItem('accessToken');
+      console.log('🔑 Token obtenido:', token ? 'Existe' : 'No existe');
+
       if (!token) {
-        throw new Error('No hay token de acceso');
+        console.log('❌ No hay token, redirigiendo al login');
+        dispatch(logout());
+        navigation.navigate('Login');
+        return;
       }
 
+      console.log('📡 Obteniendo datos del usuario...');
       const userData = await api.get('/users/token');
+      console.log('✅ Datos del usuario obtenidos:', userData);
+
       dispatch(loginSuccess(userData));
       setEditName(userData.nombre || '');
       setEditSurname(userData.apellido || '');
       setEditPhone(userData.telefono || '');
       setEditEmail(userData.email || '');
     } catch (error) {
-      console.error('Error al obtener datos del usuario:', error);
+      console.error('💥 Error al obtener datos del usuario:', error);
       if (error.message === 'No hay token de acceso' || error.message.includes('401')) {
-        // Si no hay token o el token es inválido, redirigir al login
+        console.log('🔄 Token inválido, redirigiendo al login');
         dispatch(logout());
         navigation.navigate('Login');
       } else {
-        alert('Error al cargar los datos del usuario');
+        alert('Error al cargar los datos del usuario: ' + error.message);
       }
     } finally {
       setIsLoading(false);
@@ -53,11 +64,21 @@ const Profile = () => {
     setIsLogoutModalVisible(true);
   };
 
-  const handleLogoutConfirm = () => {
-    localStorage.removeItem('accessToken');
-    dispatch(logout());
-    navigation.navigate('Login');
-    setIsLogoutModalVisible(false);
+  const handleLogoutConfirm = async () => {
+    try {
+      // CORRECCIÓN: Await añadido
+      await AsyncStorage.removeItem('accessToken');
+      console.log('🗑️ Token eliminado');
+      dispatch(logout());
+      navigation.navigate('Login');
+      setIsLogoutModalVisible(false);
+    } catch (error) {
+      console.error('Error al eliminar token:', error);
+      // Continuar con el logout aunque falle la eliminación del token
+      dispatch(logout());
+      navigation.navigate('Login');
+      setIsLogoutModalVisible(false);
+    }
   };
 
   const handleLogoutCancel = () => {
@@ -89,15 +110,18 @@ const Profile = () => {
         throw new Error('ID de usuario no encontrado');
       }
 
+      console.log('💾 Guardando datos actualizados:', updatedData);
       const response = await api.put(`/users/${user.id}`, updatedData);
+      console.log('✅ Datos actualizados:', response);
+
       dispatch(loginSuccess(response));
       setIsEditing(false);
     } catch (error) {
-      console.error('Error al actualizar datos:', error);
+      console.error('💥 Error al actualizar datos:', error);
       if (error.message === 'ID de usuario no encontrado') {
         alert('Error: No se pudo identificar al usuario');
       } else {
-        alert('Error al actualizar los datos del usuario');
+        alert('Error al actualizar los datos del usuario: ' + error.message);
       }
     }
   };
@@ -105,7 +129,9 @@ const Profile = () => {
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <Text>Cargando...</Text>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Cargando perfil...</Text>
+        </View>
       </View>
     );
   }
@@ -289,9 +315,6 @@ const Profile = () => {
           </View>
         </View>
       </Modal>
-
-      {/* Bottom Navigation */}
-      {/* ... */}
     </ScrollView>
   );
 };
@@ -300,6 +323,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f8f8',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 18,
+    color: '#666',
   },
   header: {
     flexDirection: 'row',

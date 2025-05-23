@@ -1,6 +1,11 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView, StatusBar, ActivityIndicator } from 'react-native';
 import Product from './Product'; // Asegúrate de que la ruta sea correcta
+// CORRECCIÓN: Remover la importación incorrecta de AsyncStorage
+// import { AsyncStorage } from 'react-native'; // ❌ ESTA LÍNEA SE ELIMINA
+
+// Si necesitas AsyncStorage en este componente, usa la importación correcta:
+// import AsyncStorage from '@react-native-async-storage/async-storage'; // ✅ CORRECTA
 import { useNavigation } from '@react-navigation/native'; // Importa el hook de navegación
 
 function Restaurant({ route }) {
