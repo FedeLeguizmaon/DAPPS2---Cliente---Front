@@ -344,7 +344,6 @@ function RestaurantCatalogue() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: '#f8f8f8',
   },
   header: {
@@ -425,7 +424,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#eee',
     borderRadius: 20,
-    paddingVertical: 8,
+    paddingVertical: 0, // Reducido de 8 a 5
     paddingHorizontal: 15,
     marginRight: 10,
   },
@@ -433,11 +432,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#e91e63',
   },
   categoryPillIcon: {
-    fontSize: 18,
-    marginRight: 5,
+    fontSize: 16, // Ligeramente reducido de 18 a 16
+    marginRight: 4, // Ligeramente reducido de 5 a 4
   },
   categoryPillText: {
-    fontSize: 14,
+    fontSize: 13, // Ligeramente reducido de 14 a 13
     fontWeight: 'bold',
     color: '#333',
   },
