@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, TextInput, TouchableOpacity, Image, Switch } fr
 import { useDispatch, connect } from 'react-redux'; // Importa el hook de dispatch
 import { loginSuccess } from '../store/actions/authActions'; // Importa la acción de login
 import { api } from '../utils/api';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Importación CORREGIDA
 import { useNavigation } from '@react-navigation/native'; // Importa el hook de navegación
 
 function Login() {
@@ -19,7 +20,6 @@ function Login() {
   };
 
   const handleSubmit = async () => {
- 
     try {
       setError(''); // Limpiar errores previos
 
@@ -41,10 +41,36 @@ function Login() {
       });
 
       const { token, ...userData } = data;
-      localStorage.setItem('accessToken', token);
+
+      // Guardar token en AsyncStorage - CORREGIDO
+      try {
+        await AsyncStorage.setItem('accessToken', token);
+        console.log('Token guardado correctamente');
+      } catch (storageError) {
+        console.error('Error guardando token:', storageError);
+        // El login puede continuar aunque no se guarde el token
+      }
+
+      // Si "Recordarme" está activado, guardar las credenciales
+      if (rememberMe) {
+        try {
+          await AsyncStorage.setItem('rememberedEmail', email);
+          console.log('Email recordado guardado');
+        } catch (storageError) {
+          console.error('Error guardando email recordado:', storageError);
+        }
+      } else {
+        // Si no quiere ser recordado, eliminar email guardado
+        try {
+          await AsyncStorage.removeItem('rememberedEmail');
+        } catch (storageError) {
+          console.error('Error eliminando email recordado:', storageError);
+        }
+      }
+
       dispatch(loginSuccess({ ...userData, token }));
       navigation.navigate('Home');
-      
+
     } catch (error) {
       console.error('Error:', error);
       // Verificar si el error es por credenciales inválidas (400, 401, 403)
@@ -55,7 +81,25 @@ function Login() {
       }
     }
   };
-  
+
+  // Función para cargar email recordado al iniciar el componente
+  const loadRememberedEmail = async () => {
+    try {
+      const rememberedEmail = await AsyncStorage.getItem('rememberedEmail');
+      if (rememberedEmail) {
+        setEmail(rememberedEmail);
+        setRememberMe(true);
+      }
+    } catch (error) {
+      console.error('Error cargando email recordado:', error);
+    }
+  };
+
+  // Cargar email recordado cuando el componente se monta
+  React.useEffect(() => {
+    loadRememberedEmail();
+  }, []);
+
   const handleEmailChange = (text) => {
     setEmail(text);
     // Limpiar error de formato de email si el usuario está escribiendo
@@ -74,6 +118,12 @@ function Login() {
 
   const handleRememberMeChange = (value) => {
     setRememberMe(value);
+    // Si desactiva "recordarme", eliminar email guardado
+    if (!value) {
+      AsyncStorage.removeItem('rememberedEmail').catch(error => {
+        console.error('Error eliminando email recordado:', error);
+      });
+    }
   };
 
   const handleForgotPassword = () => {
@@ -150,6 +200,7 @@ function Login() {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   login: {
     flex: 1,
@@ -237,4 +288,5 @@ const mapDispatchToProps = (dispatch) => {
     loginSuccess: (userData) => dispatch(loginSuccess(userData)),
   };
 }
-export default connect(null, mapDispatchToProps)(Login); // Conecta el componente a Redux
+
+export default connect(null, mapDispatchToProps)(Login);
