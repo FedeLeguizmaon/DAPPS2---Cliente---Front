@@ -3,7 +3,6 @@ import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView } from 'rea
 import { useSelector, useDispatch } from 'react-redux';
 import { removeFromCart, updateCartItemQuantity } from '../store/actions/cartActions';
 import { useNavigation } from '@react-navigation/native';
-import Checkout from './Checkout';
 
 
 const CartItem = ({ item }) => {

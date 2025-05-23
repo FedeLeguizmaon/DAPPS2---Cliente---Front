@@ -3,7 +3,7 @@ import { View, StyleSheet, Dimensions } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { FontAwesome } from '@expo/vector-icons';
 
-export default function OrderTrackingScreen() {
+export default function OrderTracker() {
   const latitude = -34.6037;
   const longitude = -58.3816;
 
