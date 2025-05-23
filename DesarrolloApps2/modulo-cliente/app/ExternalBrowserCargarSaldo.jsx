@@ -19,9 +19,17 @@ const ExternalBrowserCargarSaldo = () => {
   const [loading, setLoading] = useState(false);
 
   const montosRapidos = [500, 1000, 2000, 5000, 10000];
+  const MONTO_MINIMO = 100;
+  const MONTO_MAXIMO = 50000;
 
   const handleMontoRapido = (amount) => {
     setMonto(amount.toString());
+  };
+
+  // Función para validar si el monto es válido
+  const isMontoValido = () => {
+    const amount = parseFloat(monto);
+    return !isNaN(amount) && amount >= MONTO_MINIMO && amount <= MONTO_MAXIMO;
   };
 
   const validateMonto = () => {
@@ -30,12 +38,12 @@ const ExternalBrowserCargarSaldo = () => {
       Alert.alert('Error', 'Por favor ingrese un monto válido');
       return false;
     }
-    if (amount < 100) {
-      Alert.alert('Error', 'El monto mínimo es $100');
+    if (amount < MONTO_MINIMO) {
+      Alert.alert('Error', `El monto mínimo es $${MONTO_MINIMO}`);
       return false;
     }
-    if (amount > 50000) {
-      Alert.alert('Error', 'El monto máximo es $50,000');
+    if (amount > MONTO_MAXIMO) {
+      Alert.alert('Error', `El monto máximo es $${MONTO_MAXIMO.toLocaleString()}`);
       return false;
     }
     return true;
@@ -141,24 +149,33 @@ const ExternalBrowserCargarSaldo = () => {
     }).format(amount);
   };
 
+  // Función para obtener el color del texto helper basado en la validación
+  const getHelperTextStyle = () => {
+    if (!monto) return styles.helperText;
+    
+    const amount = parseFloat(monto);
+    if (isNaN(amount)) return styles.helperTextError;
+    
+    if (amount < MONTO_MINIMO || amount > MONTO_MAXIMO) {
+      return styles.helperTextError;
+    }
+    
+    return styles.helperTextSuccess;
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
+        <View style={styles.placeholder} /> 
         <Text style={styles.title}>Cargar Saldo</Text>
-        <View style={styles.placeholder} />
+        <View style={styles.placeholder} /> 
       </View>
 
       <ScrollView style={styles.content}>
         {/* Información */}
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>💰 MercadoPago Real</Text>
+          <Text style={styles.infoTitle}>💰 MercadoPago </Text>
           <Text style={styles.infoText}>
             Se abrirá tu navegador para completar el pago de forma segura en MercadoPago
           </Text>
@@ -178,7 +195,9 @@ const ExternalBrowserCargarSaldo = () => {
               maxLength={8}
             />
           </View>
-          <Text style={styles.helperText}>Monto mínimo: $100 - Máximo: $50,000</Text>
+          <Text style={getHelperTextStyle()}>
+            Monto mínimo: ${MONTO_MINIMO} - Máximo: ${MONTO_MAXIMO.toLocaleString()}
+          </Text>
         </View>
 
         {/* Montos rápidos */}
@@ -209,48 +228,28 @@ const ExternalBrowserCargarSaldo = () => {
         <View style={styles.instructionsCard}>
           <Text style={styles.instructionsTitle}>📋 Instrucciones</Text>
           <Text style={styles.instructionsText}>
-          1. Selecciona el monto y toca &quot;Ir a MercadoPago&quot;{'\n'}
+            1. Selecciona el monto y toca &quot;Ir a MercadoPago&quot;{'\n'}
             2. Se abrirá tu navegador con el checkout{'\n'}
             3. Completa el pago con los datos de prueba{'\n'}
             4. Regresa a la app para ver tu saldo actualizado{'\n'}
-            5. El saldo se acredita automáticamente vía webhook
-          </Text>
-        </View>
-
-        {/* Información de testing */}
-        <View style={styles.testingCard}>
-          <Text style={styles.testingTitle}>🧪 Datos para Testing</Text>
-          <Text style={styles.testingText}>
-            Al llegar a MercadoPago, usa:{'\n'}
-            • Tarjeta: 4509 9535 6623 3704{'\n'}
-            • CVV: 123{'\n'}
-            • Vencimiento: 11/25{'\n'}
-            • Nombre: APRO (para aprobar automáticamente)
-          </Text>
-        </View>
-
-        {/* Información de MercadoPago */}
-        <View style={styles.paymentInfoCard}>
-          <Text style={styles.paymentInfoTitle}>🔒 Checkout Oficial</Text>
-          <Text style={styles.paymentInfoText}>
-            • Checkout oficial de MercadoPago{'\n'}
-            • Todos los métodos de pago disponibles{'\n'}
-            • Máxima seguridad y confiabilidad{'\n'}
-            • Confirmación automática vía webhook
+            5. El saldo se acredita automáticamente
           </Text>
         </View>
 
         {/* Botón continuar */}
         <TouchableOpacity 
-          style={[styles.continueButton, (!monto || loading) && styles.continueButtonDisabled]}
+          style={[
+            styles.continueButton, 
+            (!isMontoValido() || loading) && styles.continueButtonDisabled
+          ]}
           onPress={handleCreatePreference}
-          disabled={!monto || loading}
+          disabled={!isMontoValido() || loading}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.continueButtonText}>
-              Ir a MercadoPago - {monto ? formatCurrency(parseFloat(monto)) : '$0'}
+              Ir a MercadoPago - {monto && isMontoValido() ? formatCurrency(parseFloat(monto)) : '$0'}
             </Text>
           )}
         </TouchableOpacity>
@@ -269,9 +268,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 15,
-    paddingTop: 50,
-    paddingBottom: 20,
-    backgroundColor: '#fff',
+    paddingTop: 40,
+    paddingBottom: 15,
   },
   backButton: {
     padding: 10,
@@ -349,6 +347,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#777',
     marginTop: 5,
+  },
+  helperTextError: {
+    fontSize: 12,
+    color: '#f44336',
+    marginTop: 5,
+    fontWeight: '500',
+  },
+  helperTextSuccess: {
+    fontSize: 12,
+    color: '#4caf50',
+    marginTop: 5,
+    fontWeight: '500',
   },
   montosRapidosContainer: {
     marginBottom: 25,

@@ -31,18 +31,34 @@ const Wallet = () => {
 
   const loadWalletData = async () => {
     try {
+      console.log('Loading wallet data...');
+      
       const [walletResponse, transaccionesResponse] = await Promise.all([
         api.get('/wallet'),
         api.get('/wallet/transacciones')
       ]);
-  
-      console.log('walletResponse:', walletResponse); // 👈 AGREGÁ ESTO
-  
+      
+      console.log('Wallet response:', walletResponse);
+      console.log('Transactions response:', transaccionesResponse);
+      
       setWalletData(walletResponse);
       setTransacciones(transaccionesResponse);
     } catch (error) {
       console.error('Error loading wallet data:', error);
-      Alert.alert('Error', 'No se pudo cargar la información de la billetera');
+      
+      // Manejar diferentes tipos de errores
+      if (error.message.includes('autenticación')) {
+        Alert.alert(
+          'Sesión Expirada', 
+          'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.',
+          [{ 
+            text: 'Ir a Login', 
+            onPress: () => navigation.navigate('Login') 
+          }]
+        );
+      } else {
+        Alert.alert('Error', `No se pudo cargar la información de la billetera: ${error.message}`);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -111,19 +127,13 @@ const Wallet = () => {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Mi Billetera</Text>
-        <TouchableOpacity onPress={onRefresh}>
-          <Text style={styles.refreshButton}>🔄</Text>
-        </TouchableOpacity>
-      </View>
+    <View style={styles.header}>
+      <View style={styles.placeholder} />
+      <Text style={styles.title}>Mi Billetera</Text>
+      <TouchableOpacity onPress={onRefresh}>
+        <Text style={styles.refreshButton}>🔄</Text>
+      </TouchableOpacity>
+    </View>
 
       {/* Saldo Cards */}
       <View style={styles.balanceContainer}>
@@ -141,12 +151,12 @@ const Wallet = () => {
         </View>
 
         <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>TokenName</Text>
+          <Text style={styles.balanceLabel}>G7Coin</Text>
           <Text style={styles.cryptoAmount}>
-            {formatCrypto(walletData.saldoCrypto)} TN
+            {formatCrypto(walletData.saldoCrypto)} G7C
           </Text>
           <Text style={styles.cryptoPrice}>
-            1 TN = {formatCurrency(walletData.precioCrypto)}
+            1 G7C = {formatCurrency(walletData.precioCrypto)}
           </Text>
           <TouchableOpacity 
             style={[styles.actionButton, styles.cryptoButton]}
@@ -205,17 +215,6 @@ const Wallet = () => {
         )}
       </View>
 
-      {/* Información de testing */}
-      <View style={styles.testingInfo}>
-        <Text style={styles.testingTitle}>Datos para Testing</Text>
-        <Text style={styles.testingText}>
-          • Visa: 4509 9535 6623 3704{'\n'}
-          • Nombre: APRO {'\n'}
-          • CVV: 123{'\n'}
-          • Fecha: 11/30{'\n'}
-          • DNI: 12345678
-        </Text>
-      </View>
     </ScrollView>
   );
 };
@@ -235,9 +234,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 15,
-    paddingTop: 50,
-    paddingBottom: 20,
-    backgroundColor: '#fff',
+    paddingTop: 40,
+    paddingBottom: 5,
   },
   backButton: {
     padding: 10,
@@ -282,6 +280,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     padding: 20,
     alignItems: 'center',
+    justifyContent: 'flex-start', // ya no necesitamos 'space-between'
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -422,6 +421,10 @@ const styles = StyleSheet.create({
     color: '#856404',
     lineHeight: 20,
   },
+  placeholder: {
+    width: 40,
+  },
+  
 });
 
 export default Wallet;

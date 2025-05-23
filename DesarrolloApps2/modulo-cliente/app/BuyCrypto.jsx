@@ -110,20 +110,16 @@ const BuyCrypto = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Comprar TNCoin</Text>
-        <View style={styles.placeholder} />
+        <View style={styles.placeholder} /> 
+        <Text style={styles.title}>Comprar G7Coin</Text>
+        <View style={styles.placeholder} /> 
       </View>
+
 
       <ScrollView style={styles.content}>
         {/* Información de saldo */}
         <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Tu saldo disponible</Text>
+          <Text style={styles.balanceLabel}>Tu saldo disponible en pesos</Text>
           <Text style={styles.balanceAmount}>{formatCurrency(saldoPesos)}</Text>
         </View>
 
@@ -138,7 +134,6 @@ const BuyCrypto = () => {
           <Text style={styles.cryptoPrice}>
             1 G7C = {formatCurrency(precioActual)}
           </Text>
-          <Text style={styles.priceSubtext}>Precio simulado para demo</Text>
         </View>
 
         {/* Input de compra */}
@@ -203,9 +198,7 @@ const BuyCrypto = () => {
         <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>ℹ️ Información importante</Text>
           <Text style={styles.infoText}>
-            • Esta es una simulación con fines educativos{'\n'}
-            • El precio de G7Coin es fijo para la demo{'\n'}
-            • En la implementación real, se integraría con el módulo de blockchain
+            • En la implementación real, se conectará con el módulo de blockchain
           </Text>
         </View>
 
@@ -241,9 +234,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 15,
-    paddingTop: 50,
-    paddingBottom: 20,
-    backgroundColor: '#fff',
+    paddingTop: 40,
+    paddingBottom: 15,
   },
   backButton: {
     padding: 10,
