@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 // CONFIGURACIÓN ESPECÍFICA PARA EXPO + ANDROID EMULATOR
 const API_BASE_URL = Platform.OS === 'android'
   ? 'http://10.0.2.2:8080/api'  // Para Android Emulator (10.0.2.2 es el alias de localhost)
-  : 'https://b965-190-229-158-254.ngrok-free.app/api'; // Para iOS Simulator
+  : 'http://localhost:8080/api'; // Para iOS Simulator
 
 console.log('🔧 API configurada para:', Platform.OS);
 console.log('🌐 URL base:', API_BASE_URL);
@@ -50,6 +50,15 @@ export const apiRequest = async (endpoint, options = {}) => {
       console.log('📦 Body enviado:', options.body);
     }
   }
+
+  console.log('Making API request:', {
+    url,
+    method: options.method || 'GET',
+    headers: {
+      ...headers,
+      Authorization: headers.Authorization ? `${headers.Authorization.substring(0, 20)}...` : 'No auth'
+    }
+  });
 
   try {
     // Configuración de la petición con timeout
