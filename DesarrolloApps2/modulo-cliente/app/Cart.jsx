@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView, Modal } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { removeFromCart, updateCartItemQuantity } from '../store/actions/cartActions';
 import { useNavigation } from '@react-navigation/native';
@@ -55,9 +55,23 @@ const Cart = () => {
   const cartItems = useSelector(state => state.cart.items);
   const cartTotal = useSelector(state => state.cart.total);
   const navigation = useNavigation();
+  const [deliveryModalVisible, setDeliveryModalVisible] = useState(false);
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
 
   const handlerCheckout = () => {
     navigation.navigate('Checkout');
+  };
+
+  const handleDeliverySelect = (address) => {
+    setSelectedAddress(address);
+    setDeliveryModalVisible(false);
+  };
+
+  const handlePaymentSelect = (method) => {
+    setSelectedPaymentMethod(method);
+    setPaymentModalVisible(false);
   };
 
   return (
@@ -68,9 +82,7 @@ const Cart = () => {
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.title}>My Basket</Text>
-        <TouchableOpacity style={styles.addItemsButton}>
-          <Text style={styles.addItemsText}>Add Items</Text>
-        </TouchableOpacity>
+        <View style={styles.placeholder} />
       </View>
 
       {/* Order Summary */}
@@ -86,26 +98,23 @@ const Cart = () => {
 
       {/* Delivery and Payment */}
       <View style={styles.deliveryPaymentSection}>
-        <TouchableOpacity style={styles.deliveryOption}>
-          {/* Icono de ubicación */}
+        <TouchableOpacity style={styles.deliveryOption} onPress={() => setDeliveryModalVisible(true)}>
           <Text style={styles.icon}>📍</Text>
           <View>
             <Text style={styles.optionTitle}>Deliver to</Text>
-            <Text style={styles.optionSubtitle}>Select Your Location</Text>
+            <Text style={styles.optionSubtitle}>{selectedAddress || 'Select Your Location'}</Text>
           </View>
           <Text style={styles.arrow}>{'>'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.paymentOption}>
-          {/* Icono de tarjeta de crédito */}
+        <TouchableOpacity style={styles.paymentOption} onPress={() => setPaymentModalVisible(true)}>
           <Text style={styles.icon}>💳</Text>
           <View>
             <Text style={styles.optionTitle}>Payment method</Text>
-            <Text style={styles.optionSubtitle}>Select Payment Method</Text>
+            <Text style={styles.optionSubtitle}>{selectedPaymentMethod || 'Select Payment Method'}</Text>
           </View>
           <Text style={styles.arrow}>{'>'}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.promotionsOption}>
-          {/* Icono de etiqueta de descuento */}
           <Text style={styles.icon}>🏷️</Text>
           <View>
             <Text style={styles.optionTitle}>Promotions</Text>
@@ -138,10 +147,78 @@ const Cart = () => {
       {/* Bottom Button */}
       <View style={styles.bottomBar}>
         <Text style={styles.bottomBarTotal}>$ {cartTotal.toFixed(2)}</Text>
-        <TouchableOpacity style={styles.placeOrderButton} onPress={handlerCheckout}>
+        <TouchableOpacity 
+          style={[styles.placeOrderButton, cartItems.length === 0 && styles.placeOrderButtonDisabled]} 
+          onPress={handlerCheckout}
+          disabled={cartItems.length === 0}
+        >
           <Text style={styles.placeOrderText}>Place Order</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Delivery Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={deliveryModalVisible}
+        onRequestClose={() => setDeliveryModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <TouchableOpacity 
+              style={styles.modalCloseButton} 
+              onPress={() => setDeliveryModalVisible(false)}
+            >
+              <Text style={styles.modalCloseText}>×</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Select Delivery Address</Text>
+            <TouchableOpacity 
+              style={styles.modalOption}
+              onPress={() => handleDeliverySelect('123 Main St, City')}
+            >
+              <Text style={styles.modalOptionText}>123 Main St, City</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.modalOption}
+              onPress={() => handleDeliverySelect('456 Park Ave, Town')}
+            >
+              <Text style={styles.modalOptionText}>456 Park Ave, Town</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Payment Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={paymentModalVisible}
+        onRequestClose={() => setPaymentModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <TouchableOpacity 
+              style={styles.modalCloseButton} 
+              onPress={() => setPaymentModalVisible(false)}
+            >
+              <Text style={styles.modalCloseText}>×</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Select Payment Method</Text>
+            <TouchableOpacity 
+              style={styles.modalOption}
+              onPress={() => handlePaymentSelect('CRIPTO')}
+            >
+              <Text style={styles.modalOptionText}>CRIPTO</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.modalOption}
+              onPress={() => handlePaymentSelect('PESOS')}
+            >
+              <Text style={styles.modalOptionText}>PESOS</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -171,16 +248,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-  addItemsButton: {
-    backgroundColor: '#fdecea',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-  },
-  addItemsText: {
-    color: '#e91e63',
-    fontWeight: 'bold',
-    fontSize: 16,
+  placeholder: {
+    width: 40,
   },
   orderSummaryTitle: {
     fontSize: 18,
@@ -353,6 +422,50 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 18,
+  },
+  placeOrderButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    width: '80%',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#333',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    padding: 5,
+  },
+  modalCloseText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#666',
+  },
+  modalOption: {
+    width: '100%',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    alignItems: 'center',
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: '#333',
   },
 });
 
