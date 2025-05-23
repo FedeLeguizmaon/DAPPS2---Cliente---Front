@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView, TextInput } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 // Componente para mostrar la información de un pedido individual
 const OrderItem = ({ order }) => {
@@ -41,9 +42,10 @@ const OrderItem = ({ order }) => {
   );
 };
 
-const Orders = ({ navigation }) => {
+const Orders = () => {
   const [activeFilter, setActiveFilter] = useState('Todos');
   const [searchText, setSearchText] = useState('');
+  const navigation = useNavigation();
   // Aquí simularíamos los datos de los pedidos
   const [orders, setOrders] = useState([
     { id: 'SP 0023900', price: 25.20, rating: 4.3, status: 'Activo' },

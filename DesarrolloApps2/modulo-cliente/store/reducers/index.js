@@ -1,6 +1,6 @@
 import { combineReducers } from 'redux';
-import authReducer from './authReducer';
-import cartReducer from './cartReducer';
+import authReducer from './authReducer.js';
+import cartReducer from './cartReducer.js';
 // Importa otros reducers
 
 const rootReducer = combineReducers({

@@ -12,7 +12,7 @@ import Product from './Product.jsx';
 import Restaurant from './Restaurant.jsx';
 import RestaurantCatalogue from './RestaurantCatalogue.jsx';
 import Checkout from './Checkout.jsx'
-import OrderTrackingScreen from './OrderTracker.jsx';
+import OrderTracker from './OrderTracker.jsx';
 import Wallet from './Wallet.jsx';
 //import CheckoutProCargarSaldo from './CheckoutProCargarSaldo.jsx';
 import ExternalBrowserCargarSaldo from './ExternalBrowserCargarSaldo.jsx';
@@ -44,7 +44,7 @@ function AppNavigator() {
       <Stack.Screen name="Restaurant" component={Restaurant} options={{ title: 'Restaurante' }} />
       <Stack.Screen name="RestaurantCatalogue" component={RestaurantCatalogue} options={{ title: 'Catálogo de Restaurantes' }} />
       <Stack.Screen name="Checkout" component={Checkout} options={{ title: 'Checkout' }} />
-      <Stack.Screen name="OrderTracking" component={OrderTrackingScreen} options={{ title: 'Seguimiento de Pedido' }} />
+      <Stack.Screen name="OrderTracker" component={OrderTracker} options={{ title: 'Seguimiento de Pedido' }} />
       
       {/* Pantallas de billetera */}
       <Stack.Screen name="Wallet" component={Wallet} options={{ title: 'Mi Billetera' }} />
