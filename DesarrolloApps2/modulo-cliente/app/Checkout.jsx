@@ -15,7 +15,7 @@ const Checkout = () => {
   }, []);
 
   const handleGoHome = () => {
-    navigation.navigate('Inicio');
+    navigation.navigate('Home');
   };
 
   const handleTrackOrder = () => {
