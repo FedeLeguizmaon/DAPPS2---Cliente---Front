@@ -1,9 +1,71 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView, TextInput } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView, TextInput, Modal, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/FontAwesome';
+
+// Componente para seleccionar la calificación (podría ser un modal o una pantalla separada)
+const RatingModal = ({ visible, currentRating, onRate, onClose }) => {
+  const [selectedRating, setSelectedRating] = useState(currentRating);
+
+  // Sincroniza el selectedRating con el currentRating cuando el modal se abre o el currentRating cambia
+  React.useEffect(() => {
+    setSelectedRating(currentRating);
+  }, [currentRating]);
+
+  const handleSave = () => {
+    onRate(selectedRating);
+    onClose();
+  };
+
+  return (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={visible}
+      onRequestClose={onClose}
+    >
+      <View style={modalStyles.centeredView}>
+        <View style={modalStyles.modalView}>
+          <Text style={modalStyles.modalTitle}>Calificar Pedido</Text>
+            <View style={modalStyles.ratingContainer}>
+                {[1, 2, 3, 4, 5].map((starValue) => (
+                    <TouchableOpacity key={starValue} onPress={() => setSelectedRating(starValue)}>
+                        <Icon
+                            name={starValue <= selectedRating ? 'star' : 'star-o'}
+                            size={30}
+                            color={starValue <= selectedRating ? '#ffc107' : '#ccc'}
+                            style={{ marginHorizontal: 5 }}
+                        />
+                    </TouchableOpacity>
+                ))}
+            </View>
+
+          <View style={modalStyles.buttonContainer}>
+            <TouchableOpacity
+              style={[modalStyles.button, modalStyles.buttonClose]}
+              onPress={onClose}
+            >
+              <Text style={modalStyles.textStyle}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[modalStyles.button, modalStyles.buttonSave]}
+              onPress={handleSave}
+            >
+              <Text style={modalStyles.textStyle}>Guardar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 
 // Componente para mostrar la información de un pedido individual
-const OrderItem = ({ order }) => {
+const OrderItem = ({ order, onRatePress }) => {
+  // Estado local para el efecto de "presionado" en las estrellas
+  const [isRatingPressed, setIsRatingPressed] = useState(false);
+
   const getStatusStyle = (status) => {
     switch (status.toLowerCase()) {
       case 'activo':
@@ -17,23 +79,61 @@ const OrderItem = ({ order }) => {
     }
   };
 
+  const handlePressIn = () => {
+    setIsRatingPressed(true);
+  };
+
+  const handlePressOut = () => {
+    setIsRatingPressed(false);
+    onRatePress(order.id, order.rating); // Llama a la función para abrir el modal después de soltar
+  };
+
   return (
     <View style={styles.orderItem}>
       <View style={styles.orderImageContainer}>
-        {/* Reemplaza con la imagen real del pedido */}
         <Image source={{ uri: 'https://via.placeholder.com/80' }} style={styles.orderImage} />
       </View>
       <View style={styles.orderInfo}>
         <Text style={styles.orderId}>Pedido ID : {order.id}</Text>
         <Text style={styles.orderPrice}>$ {order.price.toFixed(2)}</Text>
-        <View style={styles.rating}>
-          {Array(Math.floor(order.rating)).fill().map((_, i) => (
-            <Text key={i} style={styles.star}>⭐</Text>
-          ))}
-          {Array(5 - Math.floor(order.rating)).fill().map((_, i) => (
-            <Text key={i + Math.floor(order.rating)} style={styles.emptyStar}>⭐</Text>
-          ))}
-        </View>
+        {/* Aquí convertimos las estrellas en un botón */}
+        <TouchableOpacity
+          onPressIn={handlePressIn} // Cuando se presiona
+          onPressOut={handlePressOut} // Cuando se suelta
+          style={styles.ratingButton}
+          disabled={order.status.toLowerCase() !== 'completado'} // Solo se puede calificar si está completado
+          activeOpacity={1} // Desactiva la opacidad por defecto de TouchableOpacity
+        >
+          <View style={styles.rating}>
+            {[1, 2, 3, 4, 5].map((starValue) => (
+              // Condición para el color de la estrella basado en el rating y si está presionado
+              // Si usas react-native-vector-icons:
+              <Icon
+                key={starValue}
+                name={starValue <= order.rating ? 'star' : 'star-o'}
+                size={16}
+                color={isRatingPressed && starValue <= order.rating ? '#ff9800' : // Amarillo más oscuro al presionar
+                       isRatingPressed && starValue > order.rating ? '#b0b0b0' : // Gris más oscuro al presionar
+                       starValue <= order.rating ? '#ffc107' : '#ccc'} // Colores normales
+                style={{ marginHorizontal: 1 }}
+              />
+              /* Si no usas react-native-vector-icons y estás con emojis:
+              <Text
+                key={starValue}
+                style={[
+                    starValue <= order.rating ? styles.star : styles.emptyStar,
+                    isRatingPressed && { color: starValue <= order.rating ? '#ff9800' : '#b0b0b0' } // Cambia el color al presionar
+                ]}
+              >
+                ⭐
+              </Text>
+              */
+            ))}
+            {order.status.toLowerCase() === 'completado' && (
+              <Text style={styles.rateNowText}>Calificar ahora</Text>
+            )}
+          </View>
+        </TouchableOpacity>
       </View>
       <View style={styles.orderStatusContainer}>
         <Text style={[styles.orderStatus, getStatusStyle(order.status)]}>{order.status}</Text>
@@ -46,29 +146,38 @@ const Orders = () => {
   const [activeFilter, setActiveFilter] = useState('Todos');
   const [searchText, setSearchText] = useState('');
   const navigation = useNavigation();
-  // Aquí simularíamos los datos de los pedidos
+
   const [orders, setOrders] = useState([
-    { id: 'SP 0023900', price: 25.20, rating: 4.3, status: 'Activo' },
-    { id: 'SP 0023512', price: 40.00, rating: 5, status: 'Completado' },
-    { id: 'SP 0023502', price: 85.00, rating: 3.8, status: 'Completado' },
-    { id: 'SP 0023450', price: 20.50, rating: 4, status: 'Cancelado' },
+    { id: 'SP 0023900', price: 25.20, rating: 0, status: 'Activo' },
+    { id: 'SP 0023512', price: 40.00, rating: 0, status: 'Completado' }, // Este tendrá 4 estrellas pintadas
+    { id: 'SP 0023502', price: 85.00, rating: 0, status: 'Completado' }, // Este se podrá calificar
+    { id: 'SP 0023450', price: 20.50, rating: 0, status: 'Cancelado' }, // Este tendrá 2 estrellas, pero no se podrá calificar (disabled)
     // ... más pedidos
   ]);
-  /*
-  const getOrders = async () => {
-    try {
-        const response = await fetch('https://api.example.com/orders');
-        if (response.ok) {
-            const data = await response.json();
-            setOrders(data);
-        } else {
-            console.error('Error fetching orders:', response.status);
-        }
-    } catch (error) {
-        console.error('Error fetching orders:', error);
-    }
-  }
-  */
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [initialRatingForModal, setInitialRatingForModal] = useState(0);
+
+
+  const handleRateOrderPress = (orderId, currentRating) => {
+    setSelectedOrderId(orderId);
+    setInitialRatingForModal(currentRating);
+    setModalVisible(true);
+  };
+
+  const handleRatingSubmit = (newRating) => {
+    // Aquí actualizas el estado del pedido con la nueva calificación
+    setOrders(prevOrders =>
+      prevOrders.map(order =>
+        order.id === selectedOrderId ? { ...order, rating: newRating } : order
+      )
+    );
+    // Aquí es donde enviarías la calificación a tu backend
+    Alert.alert("Calificación Guardada", `Has calificado el pedido ${selectedOrderId} con ${newRating} estrellas.`);
+    setSelectedOrderId(null);
+  };
+
   const filteredOrders = orders.filter(order => {
     const searchMatch = order.id.toLowerCase().includes(searchText.toLowerCase());
     const filterMatch = activeFilter === 'Todos' || order.status.toLowerCase() === activeFilter.toLowerCase();
@@ -81,7 +190,6 @@ const Orders = () => {
 
   return (
     <View style={styles.container}>
-      {/* getOrders(); */}
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -89,14 +197,12 @@ const Orders = () => {
         </TouchableOpacity>
         <Text style={styles.title}>Pedidos</Text>
         <View style={styles.filterButton}>
-          {/* Icono de filtro */}
           <Text style={styles.filterIcon}>⚙️</Text>
         </View>
       </View>
 
       {/* Search Bar */}
       <View style={styles.searchBar}>
-        {/* Icono de búsqueda */}
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
           style={styles.searchInput}
@@ -137,12 +243,24 @@ const Orders = () => {
       {/* Order List */}
       <ScrollView style={styles.orderList}>
         {filteredOrders.map((order) => (
-          <OrderItem key={order.id} order={order} />
+          <OrderItem
+            key={order.id}
+            order={order}
+            onRatePress={handleRateOrderPress} // Pasa la función para manejar la pulsación
+          />
         ))}
         {filteredOrders.length === 0 && (
           <Text style={styles.noOrdersText}>No se han encontrado pedidos con los filtros actuales.</Text>
         )}
       </ScrollView>
+
+      {/* Modal de Calificación */}
+      <RatingModal
+        visible={modalVisible}
+        currentRating={initialRatingForModal}
+        onRate={handleRatingSubmit}
+        onClose={() => setModalVisible(false)}
+      />
     </View>
   );
 };
@@ -151,6 +269,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f8f8',
+    paddingTop: 40, // Ajuste para StatusBar
   },
   header: {
     flexDirection: 'row',
@@ -259,16 +378,27 @@ const styles = StyleSheet.create({
     color: '#e91e63',
     marginBottom: 5,
   },
+  ratingButton: { // Nuevo estilo para el TouchableOpacity
+    paddingVertical: 5,
+    paddingRight: 10,
+  },
   rating: {
     flexDirection: 'row',
+    alignItems: 'center',
   },
   star: {
     fontSize: 16,
-    color: '#ffc107',
+    color: '#ffc107', // Estrellas llenas
   },
   emptyStar: {
     fontSize: 16,
-    color: '#ccc',
+    color: '#ccc', // Estrellas vacías (grises)
+  },
+  rateNowText: {
+    fontSize: 14,
+    color: '#e91e63',
+    marginLeft: 8,
+    fontWeight: 'bold',
   },
   orderStatusContainer: {
     marginLeft: 10,
@@ -299,6 +429,76 @@ const styles = StyleSheet.create({
     color: '#777',
     textAlign: 'center',
     marginTop: 20,
+  },
+});
+
+// Estilos para el Modal de calificación
+const modalStyles = StyleSheet.create({
+  centeredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 35,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    width: '80%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#333',
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    marginBottom: 20,
+  },
+  filledStar: {
+    fontSize: 30,
+    color: '#ffc107',
+    marginHorizontal: 5,
+  },
+  emptyStar: {
+    fontSize: 30,
+    color: '#ccc',
+    marginHorizontal: 5,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+  },
+  button: {
+    borderRadius: 20,
+    padding: 10,
+    elevation: 2,
+    marginHorizontal: 10,
+    flex: 1,
+    alignItems: 'center',
+  },
+  buttonClose: {
+    backgroundColor: '#e0e0e0',
+  },
+  buttonSave: {
+    backgroundColor: '#e91e63',
+  },
+  textStyle: {
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 
