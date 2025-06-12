@@ -95,6 +95,10 @@ const OrderItem = ({ order, onRatePress }) => {
       </View>
       <View style={styles.orderInfo}>
         <Text style={styles.orderId}>Pedido ID : {order.id}</Text>
+        {/* Muestra el subprecio tachado y en gris */}
+        {order.subprice && order.subprice > order.price && (
+          <Text style={styles.originalPriceText}>$ {order.subprice.toFixed(2)}</Text>
+        )}
         <Text style={styles.orderPrice}>$ {order.price.toFixed(2)}</Text>
         {/* Aquí convertimos las estrellas en un botón */}
         <TouchableOpacity
@@ -113,16 +117,16 @@ const OrderItem = ({ order, onRatePress }) => {
                 name={starValue <= order.rating ? 'star' : 'star-o'}
                 size={16}
                 color={isRatingPressed && starValue <= order.rating ? '#ff9800' : // Amarillo más oscuro al presionar
-                       isRatingPressed && starValue > order.rating ? '#b0b0b0' : // Gris más oscuro al presionar
-                       starValue <= order.rating ? '#ffc107' : '#ccc'} // Colores normales
+                               isRatingPressed && starValue > order.rating ? '#b0b0b0' : // Gris más oscuro al presionar
+                               starValue <= order.rating ? '#ffc107' : '#ccc'} // Colores normales
                 style={{ marginHorizontal: 1 }}
               />
               /* Si no usas react-native-vector-icons y estás con emojis:
               <Text
                 key={starValue}
                 style={[
-                    starValue <= order.rating ? styles.star : styles.emptyStar,
-                    isRatingPressed && { color: starValue <= order.rating ? '#ff9800' : '#b0b0b0' } // Cambia el color al presionar
+                  starValue <= order.rating ? styles.star : styles.emptyStar,
+                  isRatingPressed && { color: starValue <= order.rating ? '#ff9800' : '#b0b0b0' } // Cambia el color al presionar
                 ]}
               >
                 ⭐
@@ -148,10 +152,10 @@ const Orders = () => {
   const navigation = useNavigation();
 
   const [orders, setOrders] = useState([
-    { id: 'SP 0023900', price: 25.20, rating: 0, status: 'Activo' },
-    { id: 'SP 0023512', price: 40.00, rating: 0, status: 'Completado' }, // Este tendrá 4 estrellas pintadas
-    { id: 'SP 0023502', price: 85.00, rating: 0, status: 'Completado' }, // Este se podrá calificar
-    { id: 'SP 0023450', price: 20.50, rating: 0, status: 'Cancelado' }, // Este tendrá 2 estrellas, pero no se podrá calificar (disabled)
+    { id: 'SP 0023900', price: 20.00, subprice: 25.00, rating: 0, status: 'Activo' },
+    { id: 'SP 0023512', price: 40.00, subprice: 40.00, rating: 4, status: 'Completado' }, // Este tendrá 4 estrellas pintadas
+    { id: 'SP 0023502', price: 75.00, subprice: 85.00, rating: 0, status: 'Completado' }, // Este se podrá calificar
+    { id: 'SP 0023450', price: 20.50, subprice: 20.50, rating: 2, status: 'Cancelado' }, // Este tendrá 2 estrellas, pero no se podrá calificar (disabled)
     // ... más pedidos
   ]);
 
@@ -159,6 +163,18 @@ const Orders = () => {
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [initialRatingForModal, setInitialRatingForModal] = useState(0);
 
+  /*
+  const fetchOrders = async () => {
+    try {
+      const response = await fetch('https://api.example.com/orders'); // Reemplaza con tu URL de API
+      const data = await response.json();
+      setOrders(data);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      Alert.alert("Error", "No se pudieron cargar los pedidos. Inténtalo más tarde.");
+    }
+  }
+  */
 
   const handleRateOrderPress = (orderId, currentRating) => {
     setSelectedOrderId(orderId);
@@ -190,6 +206,8 @@ const Orders = () => {
 
   return (
     <View style={styles.container}>
+      {/* Comenta esta llamada a la función hasta que tengas el endpoint de la API */}
+      {/* {fetchOrders()} */}
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -373,10 +391,19 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 5,
   },
+  // Estilo para el precio con descuento
   orderPrice: {
-    fontSize: 14,
-    color: '#e91e63',
+    fontSize: 16, // Aumenta el tamaño para que se vea más prominente
+    fontWeight: 'bold',
+    color: '#e91e63', // Color distintivo para el precio actual
     marginBottom: 5,
+  },
+  // Nuevo estilo para el subprecio (original)
+  originalPriceText: {
+    fontSize: 14,
+    color: '#888', // Un gris para el precio tachado
+    textDecorationLine: 'line-through', // Para tachar el texto
+    marginBottom: 2, // Pequeño margen para separarlo del precio con descuento
   },
   ratingButton: { // Nuevo estilo para el TouchableOpacity
     paddingVertical: 5,
