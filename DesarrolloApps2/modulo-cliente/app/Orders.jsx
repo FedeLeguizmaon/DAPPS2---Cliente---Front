@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView, TextInput, Modal, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { api } from '@/utils/api'; // Asegúrate de que esta ruta sea correcta para tu `api` instance
 
 // Componente para seleccionar la calificación (podría ser un modal o una pantalla separada)
 const RatingModal = ({ visible, currentRating, onRate, onClose }) => {
@@ -69,8 +70,10 @@ const OrderItem = ({ order, onRatePress }) => {
   const getStatusStyle = (status) => {
     switch (status.toLowerCase()) {
       case 'activo':
+      case 'en_camino':
         return styles.activeStatus;
       case 'completado':
+      case 'entregado':
         return styles.completedStatus;
       case 'cancelado':
         return styles.cancelledStatus;
@@ -91,27 +94,47 @@ const OrderItem = ({ order, onRatePress }) => {
   return (
     <View style={styles.orderItem}>
       <View style={styles.orderImageContainer}>
+        {/* Usamos una imagen de placeholder ya que la API no la incluye aún */}
         <Image source={{ uri: 'https://via.placeholder.com/80' }} style={styles.orderImage} />
       </View>
       <View style={styles.orderInfo}>
-        <Text style={styles.orderId}>Pedido ID : {order.id}</Text>
-        {/* Muestra el subprecio tachado y en gris */}
-        {order.subprice && order.subprice > order.price && (
-          <Text style={styles.originalPriceText}>$ {order.subprice.toFixed(2)}</Text>
-        )}
-        <Text style={styles.orderPrice}>$ {order.price.toFixed(2)}</Text>
+        {/* Formateamos el ID para que coincida con "SP 000000X" */}
+        <Text style={styles.orderId}>Pedido ID : SP {String(order.id).padStart(7, '0')}</Text>
+
+        {/* Lista de productos en el pedido */}
+        <View style={styles.productsList}>
+          <Text style={styles.productsListTitle}>Productos:</Text>
+          {order.products && order.products.map((product, index) => (
+            <View key={index} style={styles.productItem}>
+              <Text style={styles.productName}>{product.nombre} (x{product.cantidad})</Text>
+              <View style={styles.productDetails}>
+                {product.precioOriginal && product.precioOriginal > product.precioActual && (
+                  <Text style={styles.productOriginalPrice}>$ {product.precioOriginal.toFixed(2)}</Text>
+                )}
+                <Text style={styles.productPrice}>$ {product.precioActual.toFixed(2)}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {/* Precio total del pedido */}
+        <View style={styles.totalPriceContainer}>
+          {order.subprice && order.subprice > order.price && (
+            <Text style={styles.originalPriceText}>Total: $ {order.subprice.toFixed(2)}</Text>
+          )}
+          <Text style={styles.orderPrice}>Total: $ {order.price.toFixed(2)}</Text>
+        </View>
+
         {/* Aquí convertimos las estrellas en un botón */}
         <TouchableOpacity
           onPressIn={handlePressIn} // Cuando se presiona
           onPressOut={handlePressOut} // Cuando se suelta
           style={styles.ratingButton}
-          disabled={order.status.toLowerCase() !== 'completado'} // Solo se puede calificar si está completado
+          disabled={order.status.toLowerCase() !== 'completado' && order.status.toLowerCase() !== 'entregado'} // Solo se puede calificar si está completado o entregado
           activeOpacity={1} // Desactiva la opacidad por defecto de TouchableOpacity
         >
           <View style={styles.rating}>
             {[1, 2, 3, 4, 5].map((starValue) => (
-              // Condición para el color de la estrella basado en el rating y si está presionado
-              // Si usas react-native-vector-icons:
               <Icon
                 key={starValue}
                 name={starValue <= order.rating ? 'star' : 'star-o'}
@@ -121,19 +144,8 @@ const OrderItem = ({ order, onRatePress }) => {
                                starValue <= order.rating ? '#ffc107' : '#ccc'} // Colores normales
                 style={{ marginHorizontal: 1 }}
               />
-              /* Si no usas react-native-vector-icons y estás con emojis:
-              <Text
-                key={starValue}
-                style={[
-                  starValue <= order.rating ? styles.star : styles.emptyStar,
-                  isRatingPressed && { color: starValue <= order.rating ? '#ff9800' : '#b0b0b0' } // Cambia el color al presionar
-                ]}
-              >
-                ⭐
-              </Text>
-              */
             ))}
-            {order.status.toLowerCase() === 'completado' && (
+            {(order.status.toLowerCase() === 'completado' || order.status.toLowerCase() === 'entregado') && (
               <Text style={styles.rateNowText}>Calificar ahora</Text>
             )}
           </View>
@@ -151,30 +163,83 @@ const Orders = () => {
   const [searchText, setSearchText] = useState('');
   const navigation = useNavigation();
 
-  const [orders, setOrders] = useState([
-    { id: 'SP 0023900', price: 20.00, subprice: 25.00, rating: 0, status: 'Activo' },
-    { id: 'SP 0023512', price: 40.00, subprice: 40.00, rating: 4, status: 'Completado' }, // Este tendrá 4 estrellas pintadas
-    { id: 'SP 0023502', price: 75.00, subprice: 85.00, rating: 0, status: 'Completado' }, // Este se podrá calificar
-    { id: 'SP 0023450', price: 20.50, subprice: 20.50, rating: 2, status: 'Cancelado' }, // Este tendrá 2 estrellas, pero no se podrá calificar (disabled)
-    // ... más pedidos
-  ]);
-
+  // El estado inicial de orders es un array vacío, los datos se cargarán desde la API
+  const [orders, setOrders] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [initialRatingForModal, setInitialRatingForModal] = useState(0);
 
-  /*
+  // Función para obtener los pedidos desde la API
   const fetchOrders = async () => {
     try {
-      const response = await fetch('https://api.example.com/orders'); // Reemplaza con tu URL de API
-      const data = await response.json();
-      setOrders(data);
+      // 1. Obtener la lista principal de pedidos
+      const ordersResponse = await api.get('/api/pedidos/mis-pedidos');
+      if (!ordersResponse.ok) {
+        throw new Error(`HTTP error! status: ${ordersResponse.status}`);
+      }
+      const ordersData = await ordersResponse.json();
+
+      // 2. Para cada pedido, obtener sus productos y calcular precios
+      const ordersWithProductsPromises = ordersData.map(async (orderItem) => {
+        let totalPrice = 0;
+        let totalSubprice = 0;
+        let productsDetails = []; // Para almacenar los detalles de los productos
+
+        try {
+          const productsResponse = await api.get(`/api/pedidos/${orderItem.id}/productos`);
+          if (!productsResponse.ok) {
+            console.warn(`Could not fetch products for order ${orderItem.id}. Status: ${productsResponse.status}`);
+            // Si falla la carga de productos, se asume 0 para los precios y sin productos
+            return {
+              id: orderItem.id,
+              price: 0,
+              subprice: 0,
+              products: [],
+              rating: orderItem.calificacion || 0,
+              status: orderItem.estado,
+            };
+          }
+          const productsData = await productsResponse.json();
+          productsDetails = productsData; // Almacena los productos obtenidos
+
+          // Calcular el precio total y subprecio a partir de los productos
+          productsData.forEach(product => {
+            const currentProductPrice = product.precioActual || 0;
+            const originalProductPrice = product.precioOriginal || currentProductPrice;
+            const quantity = product.cantidad || 1;
+
+            totalPrice += currentProductPrice * quantity;
+            totalSubprice += originalProductPrice * quantity;
+          });
+
+        } catch (productError) {
+          console.error(`Error fetching products for order ${orderItem.id}:`, productError);
+          // Si hay un error en la carga de productos, los precios se mantienen en 0.
+        }
+
+        return {
+          id: orderItem.id,
+          price: parseFloat(totalPrice.toFixed(2)),
+          subprice: parseFloat(totalSubprice.toFixed(2)),
+          products: productsDetails, // Adjunta los detalles de los productos
+          rating: orderItem.calificacion || 0,
+          status: orderItem.estado,
+        };
+      });
+
+      const mappedOrders = await Promise.all(ordersWithProductsPromises);
+      setOrders(mappedOrders);
+
     } catch (error) {
       console.error("Error fetching orders:", error);
       Alert.alert("Error", "No se pudieron cargar los pedidos. Inténtalo más tarde.");
     }
-  }
-  */
+  };
+
+  // Llama a fetchOrders una vez que el componente se monta
+  useEffect(() => {
+    fetchOrders();
+  }, []); // El array vacío asegura que se ejecute solo una vez al montar
 
   const handleRateOrderPress = (orderId, currentRating) => {
     setSelectedOrderId(orderId);
@@ -195,8 +260,13 @@ const Orders = () => {
   };
 
   const filteredOrders = orders.filter(order => {
-    const searchMatch = order.id.toLowerCase().includes(searchText.toLowerCase());
-    const filterMatch = activeFilter === 'Todos' || order.status.toLowerCase() === activeFilter.toLowerCase();
+    // Asegurarse de que order.id sea un string para toLowerCase()
+    const searchMatch = String(order.id).toLowerCase().includes(searchText.toLowerCase());
+    // Mapea los estados de la API a tus filtros
+    const filterMatch = activeFilter === 'Todos' ||
+                        (activeFilter === 'Activo' && (order.status.toLowerCase() === 'activo' || order.status.toLowerCase() === 'en_camino')) ||
+                        (activeFilter === 'Completado' && (order.status.toLowerCase() === 'completado' || order.status.toLowerCase() === 'entregado')) ||
+                        (activeFilter === 'Cancelado' && order.status.toLowerCase() === 'cancelado');
     return searchMatch && filterMatch;
   });
 
@@ -206,8 +276,6 @@ const Orders = () => {
 
   return (
     <View style={styles.container}>
-      {/* Comenta esta llamada a la función hasta que tengas el endpoint de la API */}
-      {/* {fetchOrders()} */}
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -260,14 +328,15 @@ const Orders = () => {
 
       {/* Order List */}
       <ScrollView style={styles.orderList}>
-        {filteredOrders.map((order) => (
-          <OrderItem
-            key={order.id}
-            order={order}
-            onRatePress={handleRateOrderPress} // Pasa la función para manejar la pulsación
-          />
-        ))}
-        {filteredOrders.length === 0 && (
+        {filteredOrders.length > 0 ? (
+          filteredOrders.map((order) => (
+            <OrderItem
+              key={order.id}
+              order={order}
+              onRatePress={handleRateOrderPress} // Pasa la función para manejar la pulsación
+            />
+          ))
+        ) : (
           <Text style={styles.noOrdersText}>No se han encontrado pedidos con los filtros actuales.</Text>
         )}
       </ScrollView>
@@ -367,7 +436,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 15,
     marginBottom: 10,
-    alignItems: 'center',
+    alignItems: 'flex-start', // Cambiado a flex-start para alinear la imagen arriba
   },
   orderImageContainer: {
     width: 80,
@@ -391,23 +460,74 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 5,
   },
-  // Estilo para el precio con descuento
-  orderPrice: {
-    fontSize: 16, // Aumenta el tamaño para que se vea más prominente
+  // Estilos para la lista de productos
+  productsList: {
+    marginTop: 10,
+    marginBottom: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    paddingTop: 10,
+  },
+  productsListTitle: {
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#e91e63', // Color distintivo para el precio actual
+    color: '#555',
     marginBottom: 5,
   },
-  // Nuevo estilo para el subprecio (original)
+  productItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 3,
+  },
+  productName: {
+    fontSize: 14,
+    color: '#333',
+    flex: 2,
+  },
+  productDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'flex-end', // Alinea los precios a la derecha
+  },
+  productPrice: {
+    fontSize: 14,
+    color: '#e91e63',
+    marginLeft: 5,
+  },
+  productOriginalPrice: {
+    fontSize: 12,
+    color: '#888',
+    textDecorationLine: 'line-through',
+  },
+  // Contenedor para el precio total del pedido
+  totalPriceContainer: {
+    marginTop: 5,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    paddingTop: 5,
+    alignItems: 'flex-end', // Alinea los totales a la derecha
+  },
+  // Estilo para el precio con descuento (total del pedido)
+  orderPrice: {
+    fontSize: 18, // Un poco más grande para el total
+    fontWeight: 'bold',
+    color: '#e91e63',
+    marginTop: 2,
+  },
+  // Nuevo estilo para el subprecio (original del total del pedido)
   originalPriceText: {
     fontSize: 14,
-    color: '#888', // Un gris para el precio tachado
-    textDecorationLine: 'line-through', // Para tachar el texto
-    marginBottom: 2, // Pequeño margen para separarlo del precio con descuento
+    color: '#888',
+    textDecorationLine: 'line-through',
+    marginBottom: 2,
   },
-  ratingButton: { // Nuevo estilo para el TouchableOpacity
+  ratingButton: {
     paddingVertical: 5,
     paddingRight: 10,
+    alignSelf: 'flex-start', // Alinea el botón de calificación a la izquierda
+    marginTop: 10, // Margen superior para separarlo de los precios
   },
   rating: {
     flexDirection: 'row',
@@ -415,11 +535,11 @@ const styles = StyleSheet.create({
   },
   star: {
     fontSize: 16,
-    color: '#ffc107', // Estrellas llenas
+    color: '#ffc107',
   },
   emptyStar: {
     fontSize: 16,
-    color: '#ccc', // Estrellas vacías (grises)
+    color: '#ccc',
   },
   rateNowText: {
     fontSize: 14,
@@ -429,6 +549,7 @@ const styles = StyleSheet.create({
   },
   orderStatusContainer: {
     marginLeft: 10,
+    alignSelf: 'flex-start', // Alinea el estado al inicio del contenedor del pedido
   },
   orderStatus: {
     paddingVertical: 5,
