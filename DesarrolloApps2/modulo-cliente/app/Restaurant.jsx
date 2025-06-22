@@ -9,6 +9,16 @@ import Product from './Product'; // Asegúrate de que la ruta sea correcta
 import { useNavigation } from '@react-navigation/native'; // Importa el hook de navegación
 
 function Restaurant({ route }) {
+  if (restaurant.categories.length === 0) {
+  return (
+    <View style={styles.loadingContainer}>
+      <Text>Este restaurante no tiene productos disponibles en el momento.</Text>
+      <TouchableOpacity style={styles.backButtonEmpty} onPress={() => navigation.goBack()}>
+        <Text style={styles.backButtonText}>Volver</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
   const navigation = useNavigation();
   // Datos de restaurante de ejemplo. Se usarán si route.params.restaurant es undefined.
   // Es crucial tener estos datos completos para que la pantalla no falle en desarrollo si se carga directamente.
@@ -114,8 +124,8 @@ function Restaurant({ route }) {
     );
   }
 
-  const handleProductPress = (product) => {
-    navigation.navigate('Product', { product }); // Pasa el objeto completo del producto
+  const handleProductPress = (product,categoryName) => {
+    navigation.navigate('Product', { product, categoryName}); // Pasa el objeto completo del producto
   };
 
   return (
@@ -151,7 +161,7 @@ function Restaurant({ route }) {
               <TouchableOpacity
                 key={product.id}
                 style={styles.productItemContainer}
-                onPress={() => handleProductPress(product)}
+                onPress={() => handleProductPress(product,category.name)}
               >
                 <View style={styles.productItemContent}>
                   <Image source={{ uri: product.image }} style={styles.productThumbnail} />
