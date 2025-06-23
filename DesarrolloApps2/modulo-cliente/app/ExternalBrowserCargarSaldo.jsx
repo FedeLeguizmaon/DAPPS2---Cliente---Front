@@ -18,9 +18,9 @@ const ExternalBrowserCargarSaldo = () => {
   const [monto, setMonto] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const montosRapidos = [500, 1000, 2000, 5000, 10000];
+  const montosRapidos = [5000, 10000, 20000, 50000, 75000, 100000];
   const MONTO_MINIMO = 100;
-  const MONTO_MAXIMO = 50000;
+  const MONTO_MAXIMO = 100000;
 
   const handleMontoRapido = (amount) => {
     setMonto(amount.toString());

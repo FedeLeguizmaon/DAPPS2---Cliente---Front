@@ -16,7 +16,7 @@ import OrderTracker from './OrderTracker.jsx';
 import Wallet from './Wallet.jsx';
 //import CheckoutProCargarSaldo from './CheckoutProCargarSaldo.jsx';
 import ExternalBrowserCargarSaldo from './ExternalBrowserCargarSaldo.jsx';
-import ComprarCrypto from './BuyCrypto.jsx';
+import OperarCrypto from './Crypto.jsx';
 import CustomSplashScreen from './SplashScreen.jsx'; // Nuevo import del splash screen
 import { Provider, useSelector } from 'react-redux';
 
@@ -90,7 +90,7 @@ function AppNavigator() {
       {/* Pantallas de billetera */}
       <Stack.Screen name="Wallet" component={Wallet} options={{ title: 'Mi Billetera' }} />
       <Stack.Screen name="CargarSaldo" component={ExternalBrowserCargarSaldo} options={{ title: 'Cargar Saldo Real' }} />
-      <Stack.Screen name="ComprarCrypto" component={ComprarCrypto} options={{ title: 'Comprar Cripto' }} />
+      <Stack.Screen name="ComprarCrypto" component={OperarCrypto} options={{ title: 'Comprar Cripto' }} />
     </Stack.Navigator>
   );
 }
