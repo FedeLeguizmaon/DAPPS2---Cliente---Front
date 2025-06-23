@@ -16,17 +16,30 @@ const Wallet = () => {
   const [walletData, setWalletData] = useState({
     saldoPesos: 0,
     saldoCrypto: 0,
-    precioCrypto: 25
+    precioCrypto: 1
   });
   const [transacciones, setTransacciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Referencia para el WebSocket
+  const websocketRef = React.useRef(null);
+
   useEffect(() => {
     loadWalletData();
-    // Polling cada 30 segundos para verificar pagos pendientes
+    
+    // Configurar WebSocket para actualizaciones en tiempo real
+    setupWebSocket();
+    
+    // Polling cada 30 segundos para verificar pagos pendientes (fallback)
     const interval = setInterval(loadWalletData, 30000);
-    return () => clearInterval(interval);
+    
+    return () => {
+      clearInterval(interval);
+      if (websocketRef.current) {
+        websocketRef.current.close();
+      }
+    };
   }, []);
 
   const loadWalletData = async () => {
@@ -65,6 +78,110 @@ const Wallet = () => {
     }
   };
 
+  const setupWebSocket = () => {
+    try {
+      // Obtener userId del token o storage (ajustar según tu implementación)
+      const userId = getUserId(); // Implementar esta función según tu auth
+      
+      if (!userId) {
+        console.log('No userId available for WebSocket');
+        return;
+      }
+
+      const wsUrl = `ws://localhost:8080/ws/order-tracking?userId=${userId}`;
+      websocketRef.current = new WebSocket(wsUrl);
+
+      websocketRef.current.onopen = () => {
+        console.log('🔌 WebSocket conectado para actualizaciones de saldo');
+      };
+
+      websocketRef.current.onmessage = (event) => {
+        try {
+          const mensaje = JSON.parse(event.data);
+          console.log('📨 Mensaje WebSocket recibido:', mensaje);
+
+          // Procesar eventos de blockchain
+          if (mensaje.type === 'core_event') {
+            handleBlockchainEvent(mensaje);
+          }
+        } catch (error) {
+          console.error('Error procesando mensaje WebSocket:', error);
+        }
+      };
+
+      websocketRef.current.onclose = () => {
+        console.log('❌ WebSocket desconectado');
+        // Reconectar después de 5 segundos
+        setTimeout(setupWebSocket, 5000);
+      };
+
+      websocketRef.current.onerror = (error) => {
+        console.error('❌ Error WebSocket:', error);
+      };
+
+    } catch (error) {
+      console.error('Error configurando WebSocket:', error);
+    }
+  };
+
+  const handleBlockchainEvent = (mensaje) => {
+    const { topic, data } = mensaje;
+
+    switch (topic) {
+      case 'fiat.deposit.response':
+        if (data.status === 'SUCCESS') {
+          console.log('💰 Depósito fiat exitoso');
+          updateBalancesFromBlockchain(data);
+          showSuccessNotification('¡Saldo cargado exitosamente!');
+        }
+        break;
+
+      case 'buy.crypto.response':
+        if (data.status === 'SUCCESS') {
+          console.log('🪙 Compra crypto exitosa');
+          updateBalancesFromBlockchain(data);
+          showSuccessNotification('¡Compra de crypto exitosa!');
+        }
+        break;
+
+      case 'sell.crypto.response':
+        if (data.status === 'SUCCESS') {
+          console.log('💸 Venta crypto exitosa');
+          updateBalancesFromBlockchain(data);
+          showSuccessNotification('¡Venta de crypto exitosa!');
+        }
+        break;
+
+      case 'get.balances.response':
+        console.log('💼 Saldos actualizados desde blockchain');
+        updateBalancesFromBlockchain(data);
+        break;
+
+      default:
+        console.log('📋 Evento no manejado:', topic);
+    }
+  };
+
+  const updateBalancesFromBlockchain = (data) => {
+    // Actualizar saldos con datos del blockchain
+    setWalletData(prev => ({
+      ...prev,
+      saldoPesos: parseFloat(data.currentFiatBalance || data.fiatBalance || prev.saldoPesos),
+      saldoCrypto: parseFloat(data.currentCryptoBalance || data.cryptoBalance || prev.saldoCrypto)
+    }));
+  };
+
+  const showSuccessNotification = (message) => {
+    Alert.alert('✅ Operación Exitosa', message);
+  };
+
+  const getUserId = () => {
+    // TODO: Implementar según tu sistema de autenticación
+    // Podría ser desde AsyncStorage, token JWT, etc.
+    // Por ahora retornamos un valor de prueba
+    return 'user_123'; // Cambiar por la implementación real
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
     loadWalletData();
@@ -75,8 +192,9 @@ const Wallet = () => {
   };
 
   const handleComprarCrypto = () => {
-    navigation.navigate('BuyCrypto', { 
+    navigation.navigate('Crypto', { 
       saldoPesos: walletData.saldoPesos,
+      saldoCrypto: walletData.saldoCrypto,
       precioCrypto: walletData.precioCrypto 
     });
   };
@@ -89,7 +207,7 @@ const Wallet = () => {
   };
 
   const formatCrypto = (amount) => {
-    return parseFloat(amount).toFixed(4);
+    return parseFloat(amount).toFixed(2);
   };
 
   const getTransactionIcon = (tipo) => {
@@ -151,18 +269,15 @@ const Wallet = () => {
         </View>
 
         <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>G7Coin</Text>
-          <Text style={styles.cryptoAmount}>
-            {formatCrypto(walletData.saldoCrypto)} G7C
-          </Text>
-          <Text style={styles.cryptoPrice}>
-            1 G7C = {formatCurrency(walletData.precioCrypto)}
+          <Text style={styles.balanceLabel}>Saldo en crypto</Text>
+          <Text style={styles.balanceAmount}>
+            {formatCrypto(walletData.saldoCrypto)} DC
           </Text>
           <TouchableOpacity 
             style={[styles.actionButton, styles.cryptoButton]}
             onPress={handleComprarCrypto}
           >
-            <Text style={styles.actionButtonText}>Comprar Crypto</Text>
+            <Text style={styles.actionButtonText}>Operar Crypto</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -205,7 +320,7 @@ const Wallet = () => {
                   </Text>
                   {transaccion.cantidadCrypto && (
                     <Text style={styles.cryptoAmountSmall}>
-                      +{formatCrypto(transaccion.cantidadCrypto)} G7C
+                      +{formatCrypto(transaccion.cantidadCrypto)} DC
                     </Text>
                   )}
                 </View>

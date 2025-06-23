@@ -39,7 +39,7 @@ const CheckoutProCargarSaldo = () => {
       return false;
     }
     if (amount > 50000) {
-      Alert.alert('Error', 'El monto máximo es $50,000');
+      Alert.alert('Error', 'El monto máximo es $100,000');
       return false;
     }
     return true;
