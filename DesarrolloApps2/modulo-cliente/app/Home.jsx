@@ -17,7 +17,7 @@ function Home({ }) {
     { name: 'Sándwich', icon: require('../assets/images/sandwich.png') },
     { name: 'Pasta', icon: require('../assets/images/pasta.png') },
     { name: 'Helado', icon: require('../assets/images/icecream.png') },
-    { name: 'Más...', icon: null }, // Agregamos una categoría "Más"
+    { name: 'Más', icon: null }, 
   ];
 
   // Datos de ejemplo para las ofertas especiales
@@ -133,7 +133,9 @@ function Home({ }) {
               {category.icon ? (
                 <Image source={category.icon} style={styles.categoryIcon} resizeMode="contain" />
               ) : (
-                <Text style={styles.categoryIconPlaceholder}>...</Text>
+                <View style={styles.categoryIconPlaceholder}>
+                  <Text style={styles.categoryIconText}>+</Text>
+                </View>
               )}
               <Text style={styles.categoryText}>{category.name}</Text>
             </TouchableOpacity>
@@ -145,7 +147,7 @@ function Home({ }) {
           <View style={styles.specialOffersHeader}>
             <Text style={styles.specialOffersTitle}>Ofertas Especiales</Text>
             <TouchableOpacity onPress={() => console.log('View All Offers')}>
-              <Text style={styles.viewAllText}>Ver mas {'>'}</Text>
+             <Text style={styles.viewAllText}>Ver más ›</Text>
             </TouchableOpacity>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.specialOffersScrollViewContent}>
@@ -186,7 +188,10 @@ function Home({ }) {
           <Text style={styles.navText}>Notificaciones</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Profile')}>
-          <Image source={{ uri: 'https://via.placeholder.com/24' }} style={styles.profileNavIcon} />
+          {/* ✅ SOLUCION 2: Reemplazamos la imagen problemática */}
+          <View style={styles.profileNavIconPlaceholder}>
+            <Text style={styles.profileNavIconText}>👤</Text>
+          </View>
           <Text style={styles.navText}>Perfil</Text>
         </TouchableOpacity>
       </View>
@@ -201,10 +206,6 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: { // Estilo para el contentContainerStyle del ScrollView
     paddingBottom: 80, // Ajusta este valor para que el contenido no quede debajo de la barra de navegación
-  },
-  container: { // Eliminar este estilo si ya no es el contenedor principal del ScrollView
-    // flex: 1, // Ya no es necesario si fullScreenContainer tiene flex: 1
-    backgroundColor: '#fff',
   },
   topBar: {
     flexDirection: 'row',
@@ -364,6 +365,7 @@ const styles = StyleSheet.create({
     height: 45,
     marginBottom: 5,
   },
+
   categoryIconPlaceholder: {
     width: 45,
     height: 45,
@@ -371,11 +373,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
-    textAlign: 'center',
-    lineHeight: 45,
+    marginBottom: 5,
+  },
+  categoryIconText: {
     fontSize: 24,
     color: '#777',
-    marginBottom: 5,
+    fontWeight: 'bold',
   },
   categoryText: {
     fontSize: 12,
@@ -494,12 +497,18 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#666',
   },
-  profileNavIcon: {
+  // ✅ SOLUCION 2: Nuevos estilos para el placeholder del perfil
+  profileNavIconPlaceholder: {
     width: 24,
     height: 24,
     borderRadius: 12,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 4,
   },
-});
-
-export default Home;
+  profileNavIconText: {
+    fontSize: 16,
+    color: '#666',
+  },
+});export default Home;

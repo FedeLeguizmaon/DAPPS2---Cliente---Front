@@ -94,8 +94,8 @@ function AppNavigator() {
     </Stack.Navigator>
   );
 }
-function App() {
-  console.log('🚀 App iniciada correctamente!');}
+
+
 export default function Index() {
   return (
     <Provider store={store}>
