@@ -1,13 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { API_CONFIG, DEBUG_CONFIG, showCurrentConfig } from './config';
 
-// CONFIGURACIÓN ESPECÍFICA PARA EXPO + ANDROID EMULATOR
-const API_BASE_URL = Platform.OS === 'android'
-  ? 'http://10.0.2.2:8080/api'  // Para Android Emulator (10.0.2.2 es el alias de localhost)
-  : 'http://localhost:8080/api'; // Para iOS Simulator
-
-console.log('🔧 API configurada para:', Platform.OS);
-console.log('🌐 URL base:', API_BASE_URL);
+// Mostrar configuración al cargar el módulo
+console.log('🚀 API inicializada');
+showCurrentConfig();
 
 const getHeaders = async () => {
   try {
@@ -18,7 +15,7 @@ const getHeaders = async () => {
       ...(token ? { 'Authorization': `Bearer ${token}` } : {})
     };
 
-    if (__DEV__) {
+    if (DEBUG_CONFIG.ENABLE_LOGS) {
       console.log('📝 Headers preparados:', {
         'Content-Type': headers['Content-Type'],
         'Accept': headers['Accept'],
@@ -37,68 +34,64 @@ const getHeaders = async () => {
 };
 
 export const apiRequest = async (endpoint, options = {}) => {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const url = `${API_CONFIG.BASE_URL}${endpoint}`;
   const headers = await getHeaders();
 
-  if (__DEV__) {
+  if (DEBUG_CONFIG.LOG_REQUESTS) {
     console.log('🚀 === NUEVA PETICIÓN API ===');
     console.log('🌐 URL completa:', url);
     console.log('🔧 Método:', options.method || 'GET');
     console.log('📱 Plataforma:', Platform.OS);
+    console.log('🏢 Entorno:', API_CONFIG.CURRENT_ENV);
 
     if (options.body) {
       console.log('📦 Body enviado:', options.body);
     }
   }
 
-  console.log('Making API request:', {
-    url,
-    method: options.method || 'GET',
-    headers: {
-      ...headers,
-      Authorization: headers.Authorization ? `${headers.Authorization.substring(0, 20)}...` : 'No auth'
-    }
-  });
-
   try {
-    // Configuración de la petición con timeout
     const requestConfig = {
       ...options,
       headers: {
         ...headers,
         ...options.headers
       },
-      // Timeout de 15 segundos para dar tiempo al servidor
-      timeout: 15000
+      timeout: API_CONFIG.TIMEOUT
     };
 
-    console.log('⏰ Enviando petición...');
+    if (DEBUG_CONFIG.ENABLE_LOGS) {
+      console.log('⏰ Enviando petición...');
+    }
+    
     const startTime = Date.now();
-
     const response = await fetch(url, requestConfig);
-
     const endTime = Date.now();
     const duration = endTime - startTime;
 
-    if (__DEV__) {
+    if (DEBUG_CONFIG.LOG_RESPONSES) {
       console.log('📊 === RESPUESTA RECIBIDA ===');
       console.log('⏱️ Tiempo de respuesta:', duration + 'ms');
       console.log('📊 Status:', response.status);
       console.log('🏷️ Status Text:', response.statusText);
       console.log('🔗 URL final:', response.url);
-      console.log('📡 Headers de respuesta:', Object.fromEntries(response.headers.entries()));
+      
+      if (DEBUG_CONFIG.SHOW_NETWORK_DETAILS) {
+        console.log('📡 Headers de respuesta:', Object.fromEntries(response.headers.entries()));
+      }
     }
 
-    // Verificar el tipo de contenido
     const contentType = response.headers.get('content-type');
-    console.log('📄 Content-Type:', contentType);
+    
+    if (DEBUG_CONFIG.ENABLE_LOGS) {
+      console.log('📄 Content-Type:', contentType);
+    }
 
     let data;
 
     if (contentType && contentType.includes('application/json')) {
       try {
         data = await response.json();
-        if (__DEV__) {
+        if (DEBUG_CONFIG.LOG_RESPONSES) {
           console.log('✅ JSON parseado correctamente:', data);
         }
       } catch (jsonError) {
@@ -128,7 +121,7 @@ export const apiRequest = async (endpoint, options = {}) => {
       throw new Error(errorMessage);
     }
 
-    if (__DEV__) {
+    if (DEBUG_CONFIG.LOG_RESPONSES) {
       console.log('🎉 === PETICIÓN EXITOSA ===');
       console.log('✅ Datos recibidos:', data);
     }
@@ -136,43 +129,46 @@ export const apiRequest = async (endpoint, options = {}) => {
     return data;
 
   } catch (error) {
-    if (__DEV__) {
+    if (DEBUG_CONFIG.ENABLE_LOGS) {
       console.error('💥 === ERROR EN PETICIÓN ===');
       console.error('🌐 URL:', url);
       console.error('🔧 Método:', options.method || 'GET');
+      console.error('🏢 Entorno:', API_CONFIG.CURRENT_ENV);
       console.error('❌ Tipo de error:', error.name);
       console.error('📝 Mensaje:', error.message);
-      console.error('🔍 Stack:', error.stack);
     }
 
-    // Mensajes de error más específicos
+    // Mensajes de error específicos según el entorno
     if (error.name === 'TypeError' && error.message === 'Network request failed') {
-      const troubleshootingMessage = `
-No se pudo conectar con el servidor.
+      const isProduction = API_CONFIG.USE_PRODUCTION;
+      
+      const troubleshootingMessage = isProduction 
+        ? `
+❌ No se pudo conectar con Railway.
+
+🔍 Posibles soluciones:
+1. ✅ Verifica tu conexión a internet
+2. ✅ Comprueba que Railway esté activo: ${API_CONFIG.BASE_URL}
+3. ✅ Revisa los logs de Railway
+4. 🔄 Cambia temporalmente a servidor local en config.js
+
+URL probada: ${url}
+        `.trim()
+        : `
+❌ No se pudo conectar con el servidor local.
 
 🔍 Pasos para solucionar:
+1. ✅ Verifica que tu servidor esté corriendo en puerto 8080
+2. ✅ Abre: http://localhost:8080
+3. ✅ Para Android Emulator, verifica: http://10.0.2.2:8080
+4. 🔄 Cambia a Railway en config.js como alternativa
 
-1. ✅ Verifica que tu servidor esté corriendo:
-   - Abre: http://localhost:8080
-   - Deberías ver alguna respuesta
-
-2. ✅ Para Expo + Android Emulator:
-   - URL usada: ${url}
-   - Verifica que el servidor escuche en 0.0.0.0:8080
-
-3. ✅ Verifica la consola del servidor:
-   - ¿Llegan las peticiones?
-   - ¿Hay errores CORS?
-
-4. ✅ Prueba desde el navegador:
-   - http://localhost:8080/api/users/check-email?email=test@test.com
-      `.trim();
+URL probada: ${url}
+        `.trim();
 
       throw new Error(troubleshootingMessage);
     } else if (error.message.includes('timeout')) {
-      throw new Error('La petición tardó demasiado tiempo. Verifica tu conexión y que el servidor esté respondiendo.');
-    } else if (error.message.includes('JSON')) {
-      throw new Error('Error en la respuesta del servidor. El servidor puede estar devolviendo HTML en lugar de JSON.');
+      throw new Error(`La petición tardó más de ${API_CONFIG.TIMEOUT/1000} segundos. ${API_CONFIG.USE_PRODUCTION ? 'Railway' : 'Servidor local'} no responde a tiempo.`);
     }
 
     throw error;
@@ -206,9 +202,10 @@ export const api = {
 export const testConnection = async () => {
   try {
     console.log('🧪 === TEST DE CONECTIVIDAD ===');
-    console.log('🔗 Probando URL:', `${API_BASE_URL}/health`);
+    console.log('🏢 Entorno:', API_CONFIG.CURRENT_ENV);
+    console.log('🔗 Probando URL:', `${API_CONFIG.BASE_URL}/health`);
 
-    const response = await fetch(`${API_BASE_URL}/health`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/health`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -219,28 +216,19 @@ export const testConnection = async () => {
     console.log('📊 Test Status:', response.status);
 
     if (response.ok) {
-      console.log('✅ Servidor responde correctamente');
+      console.log(`✅ ${API_CONFIG.CURRENT_ENV} responde correctamente`);
       return true;
     } else {
-      console.log('⚠️ Servidor responde pero con error');
+      console.log(`⚠️ ${API_CONFIG.CURRENT_ENV} responde pero con error`);
       return false;
     }
   } catch (error) {
-    console.log('❌ Test falló:', error.message);
+    console.log(`❌ Test falló para ${API_CONFIG.CURRENT_ENV}:`, error.message);
     return false;
   }
 };
 
-// Función para verificar la configuración actual
+// Función para verificar la configuración actual (deprecada, usa showCurrentConfig)
 export const checkApiConfig = () => {
-  console.log('🔧 === CONFIGURACIÓN ACTUAL ===');
-  console.log('📱 Plataforma:', Platform.OS);
-  console.log('🌐 URL Base:', API_BASE_URL);
-  console.log('🛠️ Modo desarrollo:', __DEV__);
-
-  return {
-    platform: Platform.OS,
-    baseUrl: API_BASE_URL,
-    isDevelopment: __DEV__
-  };
+  return showCurrentConfig();
 };

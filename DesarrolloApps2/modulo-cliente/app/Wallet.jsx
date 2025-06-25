@@ -9,7 +9,9 @@ import {
   RefreshControl 
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '../utils/api';
+import { getWebSocketUrl, showWebSocketConfig } from '../utils/config';
 
 const Wallet = () => {
   const navigation = useNavigation();
@@ -78,17 +80,31 @@ const Wallet = () => {
     }
   };
 
-  const setupWebSocket = () => {
+  const setupWebSocket = async () => {
     try {
-      // Obtener userId del token o storage (ajustar según tu implementación)
-      const userId = getUserId(); // Implementar esta función según tu auth
+      // ✅ Obtener userId del token (ahora async)
+      const userId = await getUserId();
       
       if (!userId) {
-        console.log('No userId available for WebSocket');
+        console.log('⚠️ No userId available for WebSocket');
         return;
       }
 
-      const wsUrl = `ws://localhost:8080/ws/order-tracking?userId=${userId}`;
+      // ✅ Obtener token para autenticación del WebSocket
+      const token = await getStoredToken();
+      
+      if (!token) {
+        console.log('⚠️ No token available for WebSocket');
+        return;
+      }
+
+      // ✅ Construir URL del WebSocket con configuración correcta por plataforma
+      const wsUrl = getWebSocketUrl(userId, token);
+      console.log('🔌 Intentando conectar a:', wsUrl.replace(token, '[TOKEN_OCULTO]'));
+      
+      // Mostrar configuración para debugging
+      showWebSocketConfig();
+      
       websocketRef.current = new WebSocket(wsUrl);
 
       websocketRef.current.onopen = () => {
@@ -175,11 +191,63 @@ const Wallet = () => {
     Alert.alert('✅ Operación Exitosa', message);
   };
 
-  const getUserId = () => {
-    // TODO: Implementar según tu sistema de autenticación
-    // Podría ser desde AsyncStorage, token JWT, etc.
-    // Por ahora retornamos un valor de prueba
-    return 'user_123'; // Cambiar por la implementación real
+  const getUserId = async () => {
+    try {
+      // ✅ Obtener token de AsyncStorage (mismo sistema que api.js)
+      const token = await getStoredToken();
+      
+      if (!token) {
+        console.log('⚠️ No token available for getUserId');
+        return null;
+      }
+
+      // Decodificar JWT para extraer userId
+      const payload = decodeJWTPayload(token);
+      const userId = payload?.id || payload?.sub;
+      
+      console.log('✅ UserId extraído del token:', userId);
+      return userId ? userId.toString() : null;
+      
+    } catch (error) {
+      console.error('❌ Error extracting userId from token:', error);
+      return null;
+    }
+  };
+
+  // Función helper para obtener el token almacenado (SINCRONIZADA CON api.js)
+  const getStoredToken = async () => {
+    try {
+      // ✅ Usar la misma clave que api.js y Login.jsx
+      const token = await AsyncStorage.getItem('accessToken');
+      if (token) {
+        console.log('🔑 Token obtenido desde AsyncStorage');
+        return token;
+      } else {
+        console.log('⚠️ No hay token en AsyncStorage');
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ Error obteniendo token de AsyncStorage:', error);
+      return null;
+    }
+  };
+
+  // Función helper para decodificar JWT (solo payload, sin validar firma)
+  const decodeJWTPayload = (token) => {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        throw new Error('Invalid JWT format');
+      }
+      
+      const payload = parts[1];
+      // Decodificar base64url
+      const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+      return JSON.parse(decoded);
+    } catch (error) {
+      console.error('Error decoding JWT payload:', error);
+      return null;
+    }
   };
 
   const onRefresh = () => {
