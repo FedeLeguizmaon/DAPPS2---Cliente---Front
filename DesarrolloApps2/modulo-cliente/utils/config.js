@@ -2,12 +2,12 @@
 import { Platform } from 'react-native';
 
 // 🎯 CONFIGURACIÓN PRINCIPAL - Cambia esta variable para alternar entre entornos
-const USE_PRODUCTION_API = false; // true = Produccion (AWS/Railway), false = Local
+const USE_PRODUCTION_API = true; // true = Produccion (AWS/Railway), false = Local
 
 // URLs de los diferentes entornos
 const API_URLS = {
-  // Servidor en Producción
-  production: 'https://client-back-production.up.railway.app/api',
+  production: 'http://35.170.238.185:8080/api',
+  //production: 'https://client-back-production.up.railway.app/api',
   
   // Servidor local (Desarrollo)
   local: {
