@@ -240,6 +240,24 @@ function Register() {
       // Guardar datos localmente
       await saveUserDataLocally(completeUserData);
 
+      // Enviar evento user.creado al core
+      try {
+        await api.post('/api/wallet/events/creation-request', {
+          traceData: {
+            originModule: "user-registration",
+            traceId: `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+          },
+          name: `${completeUserData.nombre} ${completeUserData.apellido}`,
+          email: completeUserData.email,
+          initialFiatBalance: 10000,
+          initialCryptoBalance: 500
+        });
+        console.log('✅ Evento wallet creation-request enviado');
+      } catch (eventError) {
+        console.error('⚠️ Error enviando evento wallet creation-request:', eventError);
+        // No interrumpir el flujo si falla el evento
+      }
+
       // Dispatch para Redux
       dispatch(loginSuccess(completeUserData));
 

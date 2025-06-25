@@ -6,6 +6,8 @@ import { useNavigation } from '@react-navigation/native'; // Importa el hook de 
 import { api } from '../utils/api'; // Importamos la utilidad de API
 
 function Product({ route }) {
+  const categoryName = route.params?.categoryName || 'Producto';
+  <Text style={styles.categoryTag}>{categoryName}</Text>
   // Validación del producto inicial
   const defaultProduct = {
     id: 'default_product',

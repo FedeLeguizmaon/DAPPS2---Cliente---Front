@@ -19,7 +19,7 @@ import ExternalBrowserCargarSaldo from './ExternalBrowserCargarSaldo.jsx';
 import OperarCrypto from './Crypto.jsx';
 import CustomSplashScreen from './SplashScreen.jsx'; // Nuevo import del splash screen
 import { Provider, useSelector } from 'react-redux';
-
+import { SocketProvider } from './SocketContext';
 const Stack = createNativeStackNavigator();
 
 // Define RootState here if not exported from store
@@ -95,10 +95,13 @@ function AppNavigator() {
   );
 }
 
+
 export default function Index() {
   return (
     <Provider store={store}>
+      <SocketProvider>
       <AppNavigator />
+      </SocketProvider>
     </Provider>
   );
 }
