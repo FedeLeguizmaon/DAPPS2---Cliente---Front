@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -11,7 +11,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '../utils/api';
-import { getWebSocketUrl, showWebSocketConfig } from '../utils/config';
+import { SocketContext } from './SocketContext';
 
 const Wallet = () => {
   const navigation = useNavigation();
@@ -24,25 +24,49 @@ const Wallet = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Referencia para el WebSocket
-  const websocketRef = React.useRef(null);
+  // ✅ Usar SocketContext centralizado en lugar de WebSocket propio
+  const socketContext = useContext(SocketContext);
 
   useEffect(() => {
     loadWalletData();
-    
-    // Configurar WebSocket para actualizaciones en tiempo real
-    setupWebSocket();
     
     // Polling cada 30 segundos para verificar pagos pendientes (fallback)
     const interval = setInterval(loadWalletData, 30000);
     
     return () => {
       clearInterval(interval);
-      if (websocketRef.current) {
-        websocketRef.current.close();
-      }
     };
   }, []);
+
+  // ✅ Escuchar eventos del SocketContext centralizado
+  useEffect(() => {
+    if (!socketContext || !socketContext.events) {
+      console.log('⏳ Wallet: Esperando SocketContext...');
+      return;
+    }
+
+    const { events } = socketContext;
+    console.log('👂 Wallet: Escuchando eventos del SocketContext, total:', events.length);
+
+    // Procesar solo eventos relacionados con billetera
+    const walletEvents = events.filter(event => {
+      const isWalletEvent = event.type === 'core_event' && 
+        (event.topic?.includes('fiat.') || 
+         event.topic?.includes('crypto.') || 
+         event.topic?.includes('balances.'));
+      
+      if (isWalletEvent) {
+        console.log('💰 Wallet: Evento de billetera detectado:', event);
+      }
+      
+      return isWalletEvent;
+    });
+
+    if (walletEvents.length > 0) {
+      const latestEvent = walletEvents[walletEvents.length - 1];
+      handleBlockchainEvent(latestEvent);
+    }
+  }, [socketContext?.events]);
 
   const loadWalletData = async () => {
     try {
@@ -80,68 +104,12 @@ const Wallet = () => {
     }
   };
 
-  const setupWebSocket = async () => {
-    try {
-      // ✅ Obtener userId del token (ahora async)
-      const userId = await getUserId();
-      
-      if (!userId) {
-        console.log('⚠️ No userId available for WebSocket');
-        return;
-      }
+  // ✅ Esta función ya no es necesaria, usamos SocketContext centralizado
 
-      // ✅ Obtener token para autenticación del WebSocket
-      const token = await getStoredToken();
-      
-      if (!token) {
-        console.log('⚠️ No token available for WebSocket');
-        return;
-      }
-
-      // ✅ Construir URL del WebSocket con configuración correcta por plataforma
-      const wsUrl = getWebSocketUrl(userId, token);
-      console.log('🔌 Intentando conectar a:', wsUrl.replace(token, '[TOKEN_OCULTO]'));
-      
-      // Mostrar configuración para debugging
-      showWebSocketConfig();
-      
-      websocketRef.current = new WebSocket(wsUrl);
-
-      websocketRef.current.onopen = () => {
-        console.log('🔌 WebSocket conectado para actualizaciones de saldo');
-      };
-
-      websocketRef.current.onmessage = (event) => {
-        try {
-          const mensaje = JSON.parse(event.data);
-          console.log('📨 Mensaje WebSocket recibido:', mensaje);
-
-          // Procesar eventos de blockchain
-          if (mensaje.type === 'core_event') {
-            handleBlockchainEvent(mensaje);
-          }
-        } catch (error) {
-          console.error('Error procesando mensaje WebSocket:', error);
-        }
-      };
-
-      websocketRef.current.onclose = () => {
-        console.log('❌ WebSocket desconectado');
-        // Reconectar después de 5 segundos
-        setTimeout(setupWebSocket, 5000);
-      };
-
-      websocketRef.current.onerror = (error) => {
-        console.error('❌ Error WebSocket:', error);
-      };
-
-    } catch (error) {
-      console.error('Error configurando WebSocket:', error);
-    }
-  };
-
-  const handleBlockchainEvent = (mensaje) => {
-    const { topic, data } = mensaje;
+  const handleBlockchainEvent = (evento) => {
+    console.log('💰 Wallet: Procesando evento blockchain:', evento);
+    
+    const { topic, data } = evento;
 
     switch (topic) {
       case 'fiat.deposit.response':
@@ -174,7 +142,7 @@ const Wallet = () => {
         break;
 
       default:
-        console.log('📋 Evento no manejado:', topic);
+        console.log('📋 Wallet: Evento no manejado:', topic);
     }
   };
 
@@ -191,64 +159,7 @@ const Wallet = () => {
     Alert.alert('✅ Operación Exitosa', message);
   };
 
-  const getUserId = async () => {
-    try {
-      // ✅ Obtener token de AsyncStorage (mismo sistema que api.js)
-      const token = await getStoredToken();
-      
-      if (!token) {
-        console.log('⚠️ No token available for getUserId');
-        return null;
-      }
-
-      // Decodificar JWT para extraer userId
-      const payload = decodeJWTPayload(token);
-      const userId = payload?.id || payload?.sub;
-      
-      console.log('✅ UserId extraído del token:', userId);
-      return userId ? userId.toString() : null;
-      
-    } catch (error) {
-      console.error('❌ Error extracting userId from token:', error);
-      return null;
-    }
-  };
-
-  // Función helper para obtener el token almacenado (SINCRONIZADA CON api.js)
-  const getStoredToken = async () => {
-    try {
-      // ✅ Usar la misma clave que api.js y Login.jsx
-      const token = await AsyncStorage.getItem('accessToken');
-      if (token) {
-        console.log('🔑 Token obtenido desde AsyncStorage');
-        return token;
-      } else {
-        console.log('⚠️ No hay token en AsyncStorage');
-        return null;
-      }
-    } catch (error) {
-      console.error('❌ Error obteniendo token de AsyncStorage:', error);
-      return null;
-    }
-  };
-
-  // Función helper para decodificar JWT (solo payload, sin validar firma)
-  const decodeJWTPayload = (token) => {
-    try {
-      const parts = token.split('.');
-      if (parts.length !== 3) {
-        throw new Error('Invalid JWT format');
-      }
-      
-      const payload = parts[1];
-      // Decodificar base64url
-      const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
-      return JSON.parse(decoded);
-    } catch (error) {
-      console.error('Error decoding JWT payload:', error);
-      return null;
-    }
-  };
+  // ✅ Estas funciones ahora están en SocketContext, no necesitamos duplicarlas aquí
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -316,6 +227,14 @@ const Wallet = () => {
     <View style={styles.header}>
       <View style={styles.placeholder} />
       <Text style={styles.title}>Mi Billetera</Text>
+      
+      {/* ✅ Debug info del SocketContext */}
+      {socketContext && (
+        <Text style={styles.debugInfo}>
+          {socketContext.connected ? '🟢 Conectado' : '🔴 Desconectado'} 
+          {socketContext.hasAuth ? ' 🔐' : ' ❌'}
+        </Text>
+      )}
       <TouchableOpacity onPress={onRefresh}>
         <Text style={styles.refreshButton}>🔄</Text>
       </TouchableOpacity>
@@ -607,7 +526,12 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 40,
   },
-  
+  debugInfo: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 4,
+  },
 });
 
 export default Wallet;
