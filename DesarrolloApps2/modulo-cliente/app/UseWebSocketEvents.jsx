@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from 'react';
-import { SocketContext } from './SocketContext'; // ajustá esta ruta si está en otro lado
+import { SocketContext } from './SocketContext'; 
 
 export function useWebSocketEvent(eventName) {
   const { events } = useContext(SocketContext);
