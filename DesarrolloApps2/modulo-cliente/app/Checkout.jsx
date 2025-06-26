@@ -3,6 +3,7 @@ import { Text, View, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import { clearCart } from '../store/actions/cartActions';
+import { api } from '../utils/api';
 
 const Checkout = () => {
   const navigation = useNavigation();
@@ -26,7 +27,7 @@ const Checkout = () => {
     return () => clearTimeout(timer); // limpieza del temporizador
   }, []);
 
-  const createOrderData = () => {
+  const createOrderData = async () => {
     // Generar ID único para el pedido
     const orderId = 'SP' + Date.now().toString().slice(-6);
 
@@ -115,6 +116,51 @@ const Checkout = () => {
     dispatch(clearCart());
 
     console.log('🛍️ Pedido creado:', newOrderData);
+
+    // --- INTEGRACIÓN CON BACKEND - EVENTOS ---
+    try {
+      // Evento 1: Pedido Creado
+      console.log('📡 Enviando evento: Pedido Creado');
+      const eventoCrearResponse = await api.post('/api/pedido/events/creado', {
+        pedidoId: Number(newOrderData.id.replace('SP', '')),
+        comercio_id: Number(newOrderData.restaurante.id.replace('rest_', '')),
+        cliente_nombre: newOrderData.cliente.nombre,
+        direccion_entrega: newOrderData.cliente.direccion,
+        productos: newOrderData.productos.map(p => ({
+          producto_id: p.id,
+          nombre: p.nombre,
+          desc: p.nombre, // Usando el nombre como descripción por defecto
+          precio: p.precio, // Precio final del producto
+          cant: p.cantidad
+        })),
+      });
+
+      if (eventoCrearResponse.success) {
+        console.log('✅ Evento "creado" enviado exitosamente');
+      } else {
+        console.warn('⚠️ Error en evento "creado":', eventoCrearResponse.message);
+      }
+
+      // Evento 2: Pedido Pagar
+      console.log('📡 Enviando evento: Pedido Pagar');
+      const eventoPagarResponse = await api.post('/api/pedido/events/pagar', {
+        pedidoId: Number(newOrderData.id.replace('SP', '')),
+        emailUsuario: newOrderData.cliente.email,
+        emailTenant: 'localPepas@gmail.com', // Email del restaurante/tenant
+        precio: newOrderData.total,
+        metodoPago: newOrderData.metodoPago.toLowerCase() // Convertir a minúsculas: 'pesos' o 'cripto'
+      });
+
+      if (eventoPagarResponse.success) {
+        console.log('✅ Evento "pagar" enviado exitosamente');
+      } else {
+        console.warn('⚠️ Error en evento "pagar":', eventoPagarResponse.message);
+      }
+
+    } catch (error) {
+      console.error('❌ Error enviando eventos al backend:', error);
+      // No bloqueamos la UI si fallan los eventos, solo loggeamos el error
+    }
   };
 
   const handleGoHome = () => {
