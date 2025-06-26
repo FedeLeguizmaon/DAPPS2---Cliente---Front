@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, Image, Switch } from 'react-native';
 import { useDispatch, connect } from 'react-redux'; // Importa el hook de dispatch
 import { loginSuccess } from '../store/actions/authActions'; // Importa la acción de login
 import { api } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Importación CORREGIDA
 import { useNavigation } from '@react-navigation/native'; // Importa el hook de navegación
+import { SocketContext } from './SocketContext'; // ✅ Para reconectar WebSocket
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -13,6 +14,7 @@ function Login() {
   const [error, setError] = useState('');
   const dispatch = useDispatch(); // Usa el hook de dispatch
   const navigation = useNavigation(); // Usa el hook de navegación
+  const socketContext = useContext(SocketContext); // ✅ Para reconectar WebSocket
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -69,6 +71,16 @@ function Login() {
       }
 
       dispatch(loginSuccess({ ...userData, token }));
+      
+      // ✅ La reconexión ahora es manejada automáticamente por SocketContext
+      // al detectar el cambio de token. No es necesario forzarla desde aquí.
+      // if (socketContext && socketContext.forceReconnect) {
+      //   console.log('🔄 Login: Solicitando reconexión del WebSocket...');
+      //   setTimeout(() => {
+      //     socketContext.forceReconnect();
+      //   }, 500);
+      // }
+      
       navigation.navigate('Home');
 
     } catch (error) {

@@ -1,5 +1,6 @@
 import React, { createContext, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getWebSocketUrl, showWebSocketConfig } from '../utils/config';
 
 // Creamos el contexto para usarlo con useContext en cualquier parte de la app
 export const SocketContext = createContext(null);
@@ -10,7 +11,7 @@ export function SocketProvider({ children }) {
   const socketRef = useRef(null);
   const [connected, setConnected] = useState(false);
   const [events, setEvents] = useState([]); // Lista acumulada de eventos recibidos
-  // ✅ Funciones de autenticación 
+  // ✅ Funciones de autenticación (copiadas de Wallet.jsx)
   const decodeJWTPayload = (token) => {
     try {
       const parts = token.split('.');
@@ -44,12 +45,46 @@ export function SocketProvider({ children }) {
     }
   };
 
+  const isTokenExpired = (token) => {
+    try {
+      if (!token) return true;
+      
+      const payload = decodeJWTPayload(token);
+      if (!payload || !payload.exp) {
+        console.log('⚠️ SocketContext: Token sin fecha de expiración');
+        return true;
+      }
+      
+      const currentTime = Math.floor(Date.now() / 1000);
+      const isExpired = payload.exp < currentTime;
+      
+      if (isExpired) {
+        const expiredDate = new Date(payload.exp * 1000).toLocaleString();
+        console.log('⏰ SocketContext: Token expirado desde:', expiredDate);
+      } else {
+        const expiresDate = new Date(payload.exp * 1000).toLocaleString();
+        console.log('✅ SocketContext: Token válido hasta:', expiresDate);
+      }
+      
+      return isExpired;
+    } catch (error) {
+      console.error('❌ SocketContext: Error verificando expiración del token:', error);
+      return true;
+    }
+  };
+
   const getUserId = async () => {
     try {
       const token = await getStoredToken();
       
       if (!token) {
         console.log('⚠️ SocketContext: No token available for getUserId');
+        return null;
+      }
+
+      // ✅ Verificar si el token está expirado
+      if (isTokenExpired(token)) {
+        console.log('🚫 SocketContext: Token expirado, no se puede extraer userId');
         return null;
       }
 
@@ -66,21 +101,20 @@ export function SocketProvider({ children }) {
   };
 
   // ✅ Cargar userId y token al montar el componente
-  useEffect(() => {
-    console.log('🟢 SocketProvider MONTADO');
+useEffect(() => {
+  console.log('🟢 SocketProvider MONTADO');
     
     const loadAuthData = async () => {
       try {
-        const userIdFromToken = await getUserId();
         const tokenFromStorage = await getStoredToken();
-        
-        setUserId(userIdFromToken);
-        setToken(tokenFromStorage);
-        
-        console.log('🔐 SocketContext: Datos de auth cargados', {
-          userId: userIdFromToken,
-          hasToken: !!tokenFromStorage
-        });
+        if (tokenFromStorage && !isTokenExpired(tokenFromStorage)) {
+            const userIdFromToken = decodeJWTPayload(tokenFromStorage)?.id?.toString();
+            setToken(tokenFromStorage);
+            setUserId(userIdFromToken);
+            console.log('🔐 SocketContext: Datos de auth cargados', { userId: userIdFromToken, hasToken: !!tokenFromStorage });
+        } else {
+            console.log('🔌 SocketContext: No hay token válido, esperando login.');
+        }
       } catch (error) {
         console.error('❌ SocketContext: Error cargando datos de auth:', error);
       }
@@ -88,10 +122,10 @@ export function SocketProvider({ children }) {
 
     loadAuthData();
 
-    return () => {
-      console.log('🔴 SocketProvider DESMONTADO');
-    };
-  }, []);
+  return () => {
+    console.log('🔴 SocketProvider DESMONTADO');
+  };
+  }, []); // Sin dependencias para que solo se ejecute una vez al montar
 
   // ✅ Conectar WebSocket cuando tenemos userId y token
   useEffect(() => {
@@ -100,27 +134,63 @@ export function SocketProvider({ children }) {
       return;
     }
 
-    // ✅ URL configurable (localhost para desarrollo, IP para producción)
-    const baseUrl = __DEV__ ? 'ws://localhost:8080' : 'ws://35.170.238.185:8080';
-    const url = `${baseUrl}/ws/order-tracking?userId=${userId}&token=${encodeURIComponent(token)}`;
+    // ✅ Verificar que el token no esté expirado antes de conectar
+    if (isTokenExpired(token)) {
+      console.log('🚫 SocketContext: Token expirado, no se conectará WebSocket. Se necesita nuevo login.');
+      return;
+    }
+
+    // ✅ Cerrar conexión anterior si existe
+    if (socketRef.current && socketRef.current.readyState !== WebSocket.CLOSED) {
+      console.log('🧹 SocketContext: Cerrando WebSocket...');
+      socketRef.current.close();
+    }
+
+    // ✅ Usar configuración centralizada de config.js
+    const url = getWebSocketUrl(userId, token);
     console.log('⚡️ SocketContext: Conectando WebSocket:', url.replace(token, '[TOKEN_OCULTO]'));
+    
+    // ✅ Mostrar configuración para debugging
+    showWebSocketConfig();
 
     socketRef.current = new WebSocket(url);
     const socket = socketRef.current;
 
     socket.onopen = () => {
-      console.log('✅ WebSocket conectado exitosamente!');
+      console.log('✅ SocketContext: WebSocket conectado exitosamente!');
       setConnected(true);
     };
 
     socket.onclose = (event) => {
-      console.log('🔌 WebSocket cerrado:', event);
+      console.log('🔌 SocketContext: WebSocket cerrado:', event);
       setConnected(false);
+      
+      // ✅ Intentar reconectar solo si el cierre no fue intencional
+      if (event.code !== 1000 && userId && token) {
+        console.log('🔄 SocketContext: Programando reconexión en 5 segundos...');
+        setTimeout(() => {
+          if (userId && token) {
+            console.log('🔄 SocketContext: Intentando reconectar...');
+            // Triggear reconexión actualizando el state
+            setToken(prevToken => prevToken); // Force re-render
+          }
+        }, 5000);
+      }
     };
 
     socket.onerror = (error) => {
-      console.error('❌ Error en WebSocket:', error);
+      console.error('❌ SocketContext: Error en WebSocket:', error);
       setConnected(false);
+      
+      // ✅ Manejo específico para diferentes códigos de error
+      if (error.message && (error.message.includes('403') || error.message.includes('401'))) {
+        console.log('🚫 SocketContext: Error 403/401 - Posible token inválido. Esperando nuevo login...');
+        
+        // ✅ Verificar si el token está expirado
+        if (isTokenExpired(token)) {
+          console.log('⏰ SocketContext: Confirmado - Token expirado. Usuario debe hacer login nuevamente.');
+        }
+      }
     };
 
     socket.onmessage = (event) => {
@@ -161,6 +231,16 @@ export function SocketProvider({ children }) {
     }
   };
 
+  // ✅ Función para forzar reconexión desde componentes externos
+  const forceReconnect = async () => {
+    console.log('🔄 SocketContext: Reconexión forzada solicitada...');
+    const newToken = await getStoredToken();
+    const newUserId = await getUserId();
+    
+    setUserId(newUserId);
+    setToken(newToken);
+  };
+
   return (
     <SocketContext.Provider
       value={{
@@ -170,6 +250,7 @@ export function SocketProvider({ children }) {
         events,
         userId, // ✅ Exponer userId para debugging
         hasAuth: !!(userId && token), // ✅ Estado de autenticación
+        forceReconnect, // ✅ Para reconectar manualmente
       }}
     >
       {children}
