@@ -6,6 +6,7 @@ const USE_PRODUCTION_API = true; // true = Produccion (AWS/Railway), false = Loc
 
 // URLs de los diferentes entornos
 const API_URLS = {
+  // Servidor en Producción
   production: 'http://35.170.238.185:8080/api',
   //production: 'https://client-back-production.up.railway.app/api',
   
@@ -17,63 +18,13 @@ const API_URLS = {
   }
 };
 
-const getApiUrl = () => {
-    // Para desarrollo local
-    if (__DEV__) {
-        if (Platform.OS === 'android') {
-            // Para Android Emulator usa 10.0.2.2
-            // Para dispositivo físico, usa tu IP local (ej: 192.168.1.100)
-            return '181.93.50.196:8080/api'; // Android Emulator
-            // return 'http://192.168.1.XXX:8080/api'; // Dispositivo físico - reemplaza XXX
-        } else {
-            // Para iOS Simulator
-            return 'http://localhost:8080/api';
-        }
-    }
-
-    // Para producción
-    return 'https://tu-servidor-produccion.com/api';
-};
-
-export const API_CONFIG = {
-    BASE_URL: getApiUrl(),
-    TIMEOUT: 10000, // 10 segundos
-};
-
-// Configuración adicional para debugging
-export const DEBUG_CONFIG = {
-  ENABLE_LOGS: __DEV__,
-  LOG_REQUESTS: __DEV__,
-  LOG_RESPONSES: __DEV__,
-  SHOW_NETWORK_DETAILS: __DEV__
-};
-
-// Función para cambiar de entorno dinámicamente (opcional)
-export const switchEnvironment = (useProduction = true) => {
-  console.log(`🔄 Cambiando a entorno: ${useProduction ? 'Producción' : 'Local'}`);
-  // Nota: Esto requeriría reiniciar la app para tomar efecto
-  // o implementar un estado global para manejar el cambio
-};
-
-// Función para mostrar la configuración actual
-export const showCurrentConfig = () => {
-  console.log('🔧 === CONFIGURACIÓN ACTUAL ===');
-  console.log('📱 Plataforma:', Platform.OS);
-  console.log('🌐 URL Base:', API_CONFIG.BASE_URL);
-  console.log('🏢 Entorno:', API_CONFIG.CURRENT_ENV);
-  console.log('⏰ Timeout:', API_CONFIG.TIMEOUT + 'ms');
-  console.log('🛠️ Es desarrollo:', __DEV__);
-  
-  return API_CONFIG;
-};
-
 // URLs de WebSocket para diferentes entornos
 const WEBSOCKET_URLS = {
-  // Servidor en Producción - ✅ WSS para HTTPS
-  production:  'ws://35.170.238.185:8080/ws/order-tracking',
-  //production: 'wss://client-back-production.up.railway.app/ws/order-tracking', // Railway usa TLS/SSL, por eso va con wss!!!!
+  // Servidor en Producción
+  production: 'ws://35.170.238.185:8080/ws/order-tracking',
+  //production: 'wss://client-back-production.up.railway.app/ws/order-tracking',
   
-  // Servidor local (Desarrollo) - WS para HTTP
+  // Servidor local (Desarrollo)
   local: {
     android: 'ws://10.0.2.2:8080/ws/order-tracking',  // Android Emulator
     ios: 'ws://localhost:8080/ws/order-tracking',      // iOS Simulator
@@ -81,10 +32,32 @@ const WEBSOCKET_URLS = {
   }
 };
 
-const getWebSocketBaseUrl = () => {
-  // Si está configurado para usar producción, siempre usa AWS/Railway
+// Función unificada para obtener URL de API
+const getApiUrl = () => {
+  // Si está configurado para usar producción
   if (USE_PRODUCTION_API) {
-    console.log('🔌 Usando WebSocket de (Producción)');
+    console.log('🌐 Usando API de Producción');
+    return API_URLS.production;
+  }
+
+  // Para desarrollo local
+  console.log('🌐 Usando API local (Desarrollo)');
+  
+  if (Platform.OS === 'android') {
+    return API_URLS.local.android;
+  } else if (Platform.OS === 'ios') {
+    return API_URLS.local.ios;
+  } else {
+    // Para web o cualquier otra plataforma
+    return API_URLS.local.web;
+  }
+};
+
+// Función unificada para obtener URL de WebSocket
+const getWebSocketBaseUrl = () => {
+  // Si está configurado para usar producción
+  if (USE_PRODUCTION_API) {
+    console.log('🔌 Usando WebSocket de Producción');
     return WEBSOCKET_URLS.production;
   }
 
@@ -101,6 +74,31 @@ const getWebSocketBaseUrl = () => {
   }
 };
 
+// Configuración de API exportada
+export const API_CONFIG = {
+  BASE_URL: getApiUrl(),
+  TIMEOUT: 10000, // 10 segundos
+  CURRENT_ENV: USE_PRODUCTION_API ? 'production' : 'local',
+  USE_PRODUCTION: USE_PRODUCTION_API
+};
+
+// Configuración de WebSocket exportada
+export const WEBSOCKET_CONFIG = {
+  BASE_URL: getWebSocketBaseUrl(),
+  RECONNECT_INTERVAL: 5000, // 5 segundos
+  MAX_RECONNECT_ATTEMPTS: 5,
+  PING_INTERVAL: 30000, // 30 segundos
+  USE_PRODUCTION: USE_PRODUCTION_API
+};
+
+// Configuración adicional para debugging
+export const DEBUG_CONFIG = {
+  ENABLE_LOGS: __DEV__,
+  LOG_REQUESTS: __DEV__,
+  LOG_RESPONSES: __DEV__,
+  SHOW_NETWORK_DETAILS: __DEV__
+};
+
 // Función para construir la URL del WebSocket con autenticación
 export const getWebSocketUrl = (userId, token) => {
   const baseUrl = getWebSocketBaseUrl();
@@ -111,26 +109,42 @@ export const getWebSocketUrl = (userId, token) => {
   return wsUrl;
 };
 
+// Función para cambiar de entorno dinámicamente (opcional)
+export const switchEnvironment = (useProduction = true) => {
+  console.log(`🔄 Cambiando a entorno: ${useProduction ? 'Producción' : 'Local'}`);
+  // Nota: Esto requeriría reiniciar la app para tomar efecto
+  // o implementar un estado global para manejar el cambio
+};
+
+// Función para mostrar la configuración actual
+export const showCurrentConfig = () => {
+  console.log('🔧 === CONFIGURACIÓN ACTUAL ===');
+  console.log('📱 Plataforma:', Platform.OS);
+  console.log('🌐 URL Base API:', API_CONFIG.BASE_URL);
+  console.log('🔌 URL Base WS:', WEBSOCKET_CONFIG.BASE_URL);
+  console.log('🏢 Entorno:', API_CONFIG.CURRENT_ENV);
+  console.log('⏰ Timeout:', API_CONFIG.TIMEOUT + 'ms');
+  console.log('🛠️ Es desarrollo:', __DEV__);
+  console.log('🚀 Usar producción:', USE_PRODUCTION_API);
+  
+  return {
+    api: API_CONFIG,
+    websocket: WEBSOCKET_CONFIG,
+    debug: DEBUG_CONFIG
+  };
+};
+
 // Función para mostrar la configuración del WebSocket (debugging)
 export const showWebSocketConfig = () => {
   console.log('🔌 === CONFIGURACIÓN WEBSOCKET ===');
   console.log('📱 Plataforma:', Platform.OS);
-  console.log('🌐 URL Base WS:', getWebSocketBaseUrl());
+  console.log('🌐 URL Base WS:', WEBSOCKET_CONFIG.BASE_URL);
   console.log('🏢 Entorno:', API_CONFIG.CURRENT_ENV);
   console.log('🔐 Autenticación: JWT via query params');
   
   return {
-    baseUrl: getWebSocketBaseUrl(),
+    baseUrl: WEBSOCKET_CONFIG.BASE_URL,
     environment: API_CONFIG.CURRENT_ENV,
     platform: Platform.OS
   };
-};
-
-// Configuración adicional para WebSocket
-export const WEBSOCKET_CONFIG = {
-  BASE_URL: getWebSocketBaseUrl(),
-  RECONNECT_INTERVAL: 5000, // 5 segundos
-  MAX_RECONNECT_ATTEMPTS: 5,
-  PING_INTERVAL: 30000, // 30 segundos
-  USE_PRODUCTION: USE_PRODUCTION_API
 };
