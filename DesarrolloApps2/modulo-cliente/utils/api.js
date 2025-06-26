@@ -1,13 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { API_CONFIG } from './config';
 
-// CONFIGURACIÓN ESPECÍFICA PARA EXPO + ANDROID EMULATOR
-const API_BASE_URL = Platform.OS === 'android'
-  ? 'http://10.0.2.2:8080/api'  // Para Android Emulator (10.0.2.2 es el alias de localhost)
-  : 'http://localhost:8080/api'; // Para iOS Simulator
+// Usar la configuración centralizada de config.js
+const API_BASE_URL = API_CONFIG.BASE_URL;
 
 console.log('🔧 API configurada para:', Platform.OS);
 console.log('🌐 URL base:', API_BASE_URL);
+console.log('🏢 Entorno:', API_CONFIG.CURRENT_ENV);
 
 const getHeaders = async () => {
   try {
@@ -236,11 +236,15 @@ export const checkApiConfig = () => {
   console.log('🔧 === CONFIGURACIÓN ACTUAL ===');
   console.log('📱 Plataforma:', Platform.OS);
   console.log('🌐 URL Base:', API_BASE_URL);
+  console.log('🏢 Entorno:', API_CONFIG.CURRENT_ENV);
+  console.log('🚀 Usar producción:', API_CONFIG.USE_PRODUCTION);
   console.log('🛠️ Modo desarrollo:', __DEV__);
 
   return {
     platform: Platform.OS,
     baseUrl: API_BASE_URL,
+    currentEnv: API_CONFIG.CURRENT_ENV,
+    useProduction: API_CONFIG.USE_PRODUCTION,
     isDevelopment: __DEV__
   };
 };
