@@ -51,9 +51,11 @@ const Wallet = () => {
     // Procesar solo eventos relacionados con billetera
     const walletEvents = events.filter(event => {
       const isWalletEvent = event.type === 'core_event' && 
-        (event.topic?.includes('fiat.') || 
-         event.topic?.includes('crypto.') || 
-         event.topic?.includes('balances.'));
+        (event.topic?.includes('fiat') || 
+         event.topic?.includes('crypto') || 
+         event.topic?.includes('balance') ||
+         event.event?.includes('crypto') ||
+         event.event?.includes('fiat'));
       
       if (isWalletEvent) {
         console.log('💰 Wallet: Evento de billetera detectado:', event);
@@ -147,12 +149,18 @@ const Wallet = () => {
   };
 
   const updateBalancesFromBlockchain = (data) => {
+    console.log('💰 Actualizando saldos con data:', data);
+    
     // Actualizar saldos con datos del blockchain
     setWalletData(prev => ({
       ...prev,
       saldoPesos: parseFloat(data.currentFiatBalance || data.fiatBalance || prev.saldoPesos),
       saldoCrypto: parseFloat(data.currentCryptoBalance || data.cryptoBalance || prev.saldoCrypto)
     }));
+    
+    // Recargar transacciones para mostrar la nueva operación
+    console.log('🔄 Recargando historial de transacciones...');
+    loadWalletData();
   };
 
   const showSuccessNotification = (message) => {
