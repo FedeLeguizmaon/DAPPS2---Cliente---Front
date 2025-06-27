@@ -105,14 +105,22 @@ function RestaurantCatalogue() {
     <View style={{ flex: 1 }}>
       {/* Header con botón de carrito */}
       <View style={styles.header}>
-        <Text style={styles.title}>Comercios y Productos</Text>
-        <TouchableOpacity
-          style={styles.cartButton}
-          onPress={() => navigation.navigate('Cart')} // Asegurate de tener 'Cart' en tu navigator
-        >
-          <Text style={styles.cartIcon}>🛒</Text>
-        </TouchableOpacity>
-      </View>
+  <Text style={styles.title}>Comercios y Productos</Text>
+  <View style={styles.headerButtons}>
+    <TouchableOpacity
+      style={styles.iconButton}
+      onPress={() => navigation.navigate('Home')} 
+    >
+      <Text style={styles.cartIcon}>🏠</Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      style={styles.iconButton}
+      onPress={() => navigation.navigate('Cart')} 
+    >
+      <Text style={styles.cartIcon}>🛒</Text>
+    </TouchableOpacity>
+  </View>
+</View>
 
       <Text style={styles.status}>
         {connected ? '🟢 Conectado' : '🔴 Desconectado'}
@@ -200,6 +208,16 @@ const styles = StyleSheet.create({
   productoItem: { marginBottom: 8 },
   productoNombre: { fontSize: 16 },
   productoPrecio: { fontSize: 14, color: '#4caf50' },
+  headerButtons: {
+  flexDirection: 'row',
+  gap: 8,
+},
+iconButton: {
+  backgroundColor: '#f1f1f1',
+  padding: 8,
+  borderRadius: 20,
+  marginLeft: 8,
+},
 });
 
 export default RestaurantCatalogue;
