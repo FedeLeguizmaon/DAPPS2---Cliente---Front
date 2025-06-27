@@ -1,150 +1,172 @@
 import React, { useContext, useEffect, useState } from 'react';
+import {
+  ScrollView,
+  Text,
+  View,
+  ActivityIndicator,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { SocketContext } from './SocketContext';
-import Restaurante from './Restaurant.jsx';
-import { StyleSheet, View, Text, ScrollView, ActivityIndicator } from 'react-native';
-import { useWebSocketEvent } from './UseWebSocketEvents';
- 
+
 function RestaurantCatalogue() {
   const context = useContext(SocketContext);
-  const [allRestaurants, setAllRestaurants] = useState([]);
-  const stockEvent = useWebSocketEvent('stock.actualizado');
- 
+  const navigation = useNavigation();
+  const [comercios, setComercios] = useState([]);
+
   useEffect(() => {
-    if (!stockEvent || !stockEvent.data) return;
- 
-    console.log('📦 Nuevo evento recibido:', stockEvent);
- 
-    const { comercio, producto, stock } = stockEvent.data;
- 
-    const restaurantId = `comercio-${comercio.comercio_id}`;
- 
-    const restaurant = {
-      id: restaurantId,
-      name: comercio.nombre,
-      image: 'https://via.placeholder.com/150',
-      deliveryTime: '20-30 min',
-      distance: '1 km',
-      rating: 4.5,
-      categories: [producto.categoria_nombre || 'Sin categoría'],
-      fullData: {
-        name: comercio.nombre,
-        categories: [
-          {
-            name: producto.categoria_nombre || 'Catálogo',
-            products: [
-              {
-                id: producto.producto_id.toString(),
-                name: producto.nombre_producto,
-                originalPrice: producto.precio,
-                currentPrice: producto.precio,
-                rating: 4.5,
-                reviews: 0,
-                image: 'https://via.placeholder.com/300x200',
-                description:
-                  producto.descripcion + ` (Stock actualizado: ${stock.cantidad_nueva})`,
-                promociones: [],
-              },
-            ],
-          },
-        ],
-      },
-    };
- 
-    setAllRestaurants((prev) => {
-      const filtered = prev.filter((r) => r.id !== restaurant.id);
-      return [...filtered, restaurant];
+    if (!context || !context.events) return;
+
+    const stockEvents = context.events.filter(event => event.topic === 'stock.actualizado');
+    if (stockEvents.length === 0) return;
+
+    const latestEvent = stockEvents[stockEvents.length - 1];
+    const { comercio, producto } = latestEvent.data.data;
+    if (!comercio || !producto) return;
+
+    setComercios(prev => {
+      const index = prev.findIndex(c => c.id === comercio.comercio_id);
+      const nuevoProducto = {
+        id: producto.producto_id,
+        nombre: producto.nombre_producto,
+        descripcion: producto.descripcion,
+        precio: producto.precio,
+      };
+
+      if (index === -1) {
+        return [...prev, {
+          id: comercio.comercio_id,
+          nombre: comercio.nombre,
+          productos: [nuevoProducto],
+        }];
+      } else {
+        const comercioExistente = prev[index];
+        const productoExiste = comercioExistente.productos.some(p => p.id === nuevoProducto.id);
+        const productosActualizados = productoExiste
+          ? comercioExistente.productos.map(p => p.id === nuevoProducto.id ? nuevoProducto : p)
+          : [...comercioExistente.productos, nuevoProducto];
+
+        const updated = [...prev];
+        updated[index] = {
+          ...comercioExistente,
+          productos: productosActualizados,
+        };
+        return updated;
+      }
     });
-  }, [stockEvent]);
- 
+  }, [context?.events]);
+
   if (!context) {
     return (
-<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-<ActivityIndicator size="large" color="#e91e63" />
-<Text>Conectando...</Text>
-<Text>Verificando SocketProvider...</Text>
-</View>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#e91e63" />
+        <Text>Conectando al WebSocket...</Text>
+      </View>
     );
   }
- 
+
   const { connected } = context;
- 
+
   return (
-<ScrollView style={styles.container}>
-<Text style={styles.title}>Catálogo de Restaurantes</Text>
-<Text style={styles.status}>
+    <View style={{ flex: 1 }}>
+      {/* Header con botón de carrito */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Comercios y Productos</Text>
+        <TouchableOpacity
+          style={styles.cartButton}
+          onPress={() => navigation.navigate('Cart')} // Asegurate de tener 'Cart' en tu navigator
+        >
+          <Text style={styles.cartIcon}>🛒</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.status}>
         {connected ? '🟢 Conectado' : '🔴 Desconectado'}
-</Text>
- 
-      {allRestaurants.length === 0 ? (
-<View style={styles.emptyContainer}>
-<Text style={styles.emptyText}>
-            Esperando restaurantes... {connected ? '⏳' : '📡'}
-</Text>
-</View>
-      ) : (
-<View>
-<Text style={styles.countText}>
-            📍 {allRestaurants.length} restaurante(s) encontrado(s)
-</Text>
-          {allRestaurants.map((restaurant) => (
-<Restaurante key={restaurant.id} data={restaurant.fullData} />
-          ))}
-</View>
-      )}
-</ScrollView>
+      </Text>
+
+      <ScrollView style={styles.container}>
+        {comercios.length === 0 ? (
+          <Text style={styles.empty}>Esperando eventos de stock...</Text>
+        ) : (
+          comercios.map((c) => (
+            <TouchableOpacity
+              key={c.id}
+              style={styles.comercioCard}
+              onPress={() => navigation.navigate('Restaurant', {
+                restaurant: {
+                  id: c.id,
+                  name: c.nombre,
+                  image: 'https://via.placeholder.com/300x200',
+                  deliveryTime: '20-30 min',
+                  distance: '1.5 km',
+                  categories: [{
+                    name: 'Catálogo',
+                    products: c.productos.map(p => ({
+                      id: p.id,
+                      name: p.nombre,
+                      description: p.descripcion,
+                      currentPrice: p.precio,
+                      originalPrice: p.precio,
+                      image: 'https://via.placeholder.com/300x200',
+                      rating: 4.5,
+                      reviews: 0,
+                      additionalOptions: [],
+                    })),
+                  }]
+                }
+              })}
+            >
+              <Text style={styles.comercioNombre}>🏪 {c.nombre}</Text>
+              {c.productos.map((p) => (
+                <View key={p.id} style={styles.productoItem}>
+                  <Text style={styles.productoNombre}>🍽 {p.nombre}</Text>
+                  <Text style={styles.productoPrecio}>💲{p.precio}</Text>
+                </View>
+              ))}
+            </TouchableOpacity>
+          ))
+        )}
+      </ScrollView>
+    </View>
   );
 }
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f8f8',
-    padding: 15,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  status: {
-    textAlign: 'center',
-    marginBottom: 10,
-    fontSize: 16,
-  },
-  debug: {
-    textAlign: 'center',
-    marginBottom: 20,
-    fontSize: 12,
-    color: '#666',
-  },
-  emptyContainer: {
+  container: { padding: 16, backgroundColor: '#fff' },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 50,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+    backgroundColor: '#fff',
   },
-  emptyText: {
-    textAlign: 'center',
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 10,
+  title: { fontSize: 22, fontWeight: 'bold' },
+  cartButton: {
+    backgroundColor: '#f1f1f1',
+    padding: 8,
+    borderRadius: 20,
   },
-  debugText: {
-    textAlign: 'center',
-    fontSize: 12,
-    color: '#999',
+  cartIcon: {
+    fontSize: 22,
   },
-  errorText: {
-    textAlign: 'center',
-    fontSize: 16,
-    color: '#f44336',
-    marginBottom: 10,
+  status: { marginLeft: 16, marginBottom: 12, fontStyle: 'italic' },
+  empty: { textAlign: 'center', marginTop: 20 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  comercioCard: {
+    marginBottom: 24,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    backgroundColor: '#f5f5f5',
   },
-  countText: {
-    textAlign: 'center',
-    fontSize: 14,
-    color: '#4CAF50',
-    marginBottom: 15,
-    fontWeight: 'bold',
-  },
+  comercioNombre: { fontSize: 18, fontWeight: 'bold', marginBottom: 8 },
+  productoItem: { marginBottom: 8 },
+  productoNombre: { fontSize: 16 },
+  productoPrecio: { fontSize: 14, color: '#4caf50' },
 });
 
 export default RestaurantCatalogue;
