@@ -143,12 +143,19 @@ const Checkout = () => {
 
       // Evento 2: Pedido Pagar
       console.log('📡 Enviando evento: Pedido Pagar');
+      
+      // Convertir método de pago al formato que espera el backend
+      let paymentType = newOrderData.metodoPago.toLowerCase();
+      if (paymentType === 'pesos') {
+        paymentType = 'fiat';
+      }
+      
       const eventoPagarResponse = await api.post('/api/pedido/events/pagar', {
-        pedidoId: Number(newOrderData.id.replace('SP', '')),
-        emailUsuario: newOrderData.cliente.email,
-        emailTenant: 'localPepas@gmail.com', // Email del restaurante/tenant
-        precio: newOrderData.total,
-        metodoPago: newOrderData.metodoPago.toLowerCase() // Convertir a minúsculas: 'pesos' o 'cripto'
+        fromEmail: newOrderData.cliente.email,
+        toEmail: 'localPepas@gmail.com', // Email del restaurante/tenant
+        amount: newOrderData.total.toString(), // Convertir a string como espera el backend
+        concept: `Pedido #${newOrderData.id} - ${newOrderData.restaurante.nombre}`,
+        paymentType: paymentType // 'fiat' o 'crypto'
       });
 
       if (eventoPagarResponse.success) {
