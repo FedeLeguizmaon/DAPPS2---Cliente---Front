@@ -173,6 +173,29 @@ const Checkout = () => {
         console.warn('⚠️ Error en evento "pagar":', eventoPagarResponse.message);
       }
 
+      // Evento 3: Pedido Confirmado
+      console.log('📡 Enviando evento: Pedido Confirmado');
+      const eventoConfirmadoResponse = await api.post('/pedido/events/confirmado', {
+        pedidoId: Number(newOrderData.id.replace('SP', '')),
+        productos: newOrderData.productos.map(p => ({
+          id: p.id,
+          nombre: p.nombre,
+          cantidad: p.cantidad,
+          precio: p.precio
+        })),
+        ubiOrigenLat: newOrderData.ubicacionRestaurante.lat,
+        ubiOrigenLong: newOrderData.ubicacionRestaurante.lng,
+        ubiDestinoLat: newOrderData.ubicacionDestino.lat,
+        ubiDestinoLong: newOrderData.ubicacionDestino.lng,
+        nombre: newOrderData.cliente.nombre
+      });
+
+      if (eventoConfirmadoResponse.success) {
+        console.log('✅ Evento "confirmado" enviado exitosamente');
+      } else {
+        console.warn('⚠️ Error en evento "confirmado":', eventoConfirmadoResponse.message);
+      }
+
     } catch (error) {
       console.error('❌ Error enviando eventos al backend:', error);
       // No bloqueamos la UI si fallan los eventos, solo loggeamos el error
