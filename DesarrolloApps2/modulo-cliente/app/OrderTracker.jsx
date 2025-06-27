@@ -1,52 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Dimensions, ActivityIndicator, TouchableOpacity, Text, ScrollView } from 'react-native';
+import { View, StyleSheet, Dimensions, ActivityIndicator, TouchableOpacity, Text, ScrollView, Alert } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { FontAwesome } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { api } from '../utils/api';
-
-// Datos mock de backup para testing
-const mockOrderData = {
-  'SP001': {
-    id: 'SP001',
-    estado: 'EN_CAMINO',
-    cliente: {
-      nombre: 'Juan Pérez',
-      telefono: '+54 11 1234-5678',
-      direccion: 'Casa Rosada, Balcarce 50, C1064AAB CABA'
-    },
-    restaurante: {
-      nombre: 'Pizzería Güerrin',
-      direccion: 'Av. Corrientes 1368, C1043 CABA',
-      telefono: '+54 11 4371-8141'
-    },
-    repartidor: {
-      nombre: 'Carlos Martinez',
-      telefono: '+54 11 5555-1234',
-      vehiculo: 'Moto Honda XR150'
-    },
-    productos: [
-      { nombre: 'Pizza Napolitana', cantidad: 1, precio: 2200 },
-      { nombre: 'Fainá', cantidad: 1, precio: 800 },
-      { nombre: 'Coca-Cola 500ml', cantidad: 2, precio: 600 }
-    ],
-    total: 3600,
-    tiempoEstimado: 15,
-    ubicacionRepartidor: {
-      lat: -34.60513444417913,
-      lng: -58.378509242618875
-    },
-    ubicacionDestino: {
-      lat: -34.60802877002906,
-      lng: -58.37037817016744
-    },
-    ubicacionRestaurante: {
-      lat: -34.604019345084936,
-      lng: -58.385949813495365
-    }
-  }
-};
+import { usePedido } from './usePedido'; // ✅ NUEVO: Hook personalizado para pedidos
 
 export default function OrderTracker() {
   const [isMapLoaded, setIsMapLoaded] = useState(false);
@@ -57,643 +16,519 @@ export default function OrderTracker() {
   const navigation = useNavigation();
   const route = useRoute();
   const user = useSelector((state) => state.auth.user);
-  const cartItems = useSelector(state => state.cart.items);
-  const cartTotal = useSelector(state => state.cart.total);
 
-  // Obtener orderId de los parámetros o usar default para testing
-  const { orderId, orderDetails } = route.params || { orderId: 'SP001' };
+  // Obtener orderId de los parámetros
+  const { orderId, orderDetails } = route.params || {};
 
-  // Cargar datos del pedido (real o mock)
+  console.log('🔍 OrderTracker: Parámetros recibidos:', { orderId, hasOrderDetails: !!orderDetails });
+
+  // ✅ NUEVO: Usar el hook de pedido para datos en tiempo real
+  const {
+    pedido,
+    isLoading: pedidoLoading,
+    connected,
+    estado,
+    estadoTexto,
+    estadoColor,
+    tiempoEstimado,
+    tieneCoordenas,
+    coordenadas,
+    tieneRepartidor,
+    repartidor,
+    datosParaMapa
+  } = usePedido(orderId);
+
+  // Cargar datos iniciales del pedido si no vienen por parámetros
   useEffect(() => {
-    loadOrderData();
-    // Simular actualizaciones cada 30 segundos
-    const interval = setInterval(loadOrderData, 30000);
-    return () => clearInterval(interval);
-  }, [orderId]);
+    console.log('🔄 OrderTracker: useEffect - orderId:', orderId, 'orderDetails:', !!orderDetails, 'pedido:', !!pedido);
+
+    if (orderDetails) {
+      // ✅ PRIORIDAD 1: Usar datos pasados por parámetros
+      console.log('📋 OrderTracker: Usando orderDetails de parámetros');
+      setOrderData(transformOrderDetails(orderDetails));
+      setLoading(false);
+      setError(null);
+    } else if (pedido) {
+      // ✅ PRIORIDAD 2: Usar datos del socket si están disponibles
+      console.log('🔌 OrderTracker: Usando datos del socket');
+      setOrderData(transformPedidoToOrderData(pedido));
+      setLoading(false);
+      setError(null);
+    } else if (orderId && !pedidoLoading && !orderData) {
+      // ✅ PRIORIDAD 3: Si tenemos orderId pero no hay datos, intentar cargar desde API
+      console.log('🌐 OrderTracker: orderId disponible pero sin datos, cargando desde API');
+      loadOrderData();
+    } else if (!orderId) {
+      // Sin orderId, mostrar error
+      console.log('❌ OrderTracker: No hay orderId disponible');
+      setError('No se especificó un ID de pedido');
+      setLoading(false);
+    }
+  }, [orderId, orderDetails, pedido, pedidoLoading]);
+
+  // ✅ NUEVO: Escuchar actualizaciones del socket para el pedido actual
+  useEffect(() => {
+    if (pedido && orderData && pedido.id === orderData.id) {
+      console.log('🔄 OrderTracker: Actualizando con datos del socket para pedido:', pedido.id);
+      // Mergear datos del socket con los datos existentes
+      const updatedData = {
+        ...orderData,
+        ...transformPedidoToOrderData(pedido),
+        id: pedido.id // Asegurar que el ID se mantenga
+      };
+      setOrderData(updatedData);
+    }
+  }, [pedido]);
+
+  // ✅ NUEVO: Transformar datos del pedido del socket a formato del componente
+  const transformPedidoToOrderData = (pedidoData) => {
+    if (!pedidoData) return null;
+
+    console.log('🔄 OrderTracker: Transformando datos del pedido del socket:', pedidoData);
+
+    return {
+      id: pedidoData.id,
+      estado: pedidoData.estado,
+      cliente: {
+        nombre: user?.nombre ? `${user.nombre} ${user.apellido || ''}`.trim() : '',
+        telefono: user?.telefono || '+54 11 0000-0000',
+        direccion: pedidoData.direccionEntrega || 'Dirección de entrega  direccion:  Navarro 3684, C1419 CABA'
+      },
+      restaurante: pedidoData.restaurante || {
+        nombre: 'Betular Pâtisserie',
+        direccion: 'Mercedes 3900, C1419 CABA',
+        telefono: '+54 11 4371-8141'
+      },
+      repartidor: repartidor ? {
+        nombre: repartidor.nombre,
+        telefono: repartidor.telefono,
+        vehiculo: repartidor.vehiculo
+      } : null,
+      productos: pedidoData.productos || [
+        { nombre: 'Pedido en proceso', cantidad: 1, precio: pedidoData.total || 0 }
+      ],
+      total: pedidoData.total || 0,
+      tiempoEstimado: parseInt(tiempoEstimado.split('-')[0]) || 30,
+      ubicacionRepartidor: coordenadas ? {
+        lat: coordenadas.latitud,
+        lng: coordenadas.longitud
+      } : null,
+      ubicacionDestino: pedidoData.ubicacionDestino || {
+        lat:
+          -34.60102917391953,
+        lng: -58.505998479366276
+      },
+      ubicacionRestaurante: pedidoData.ubicacionRestaurante || {
+        lat: -34.60124112209541,
+
+        lng: -58.511995898155845
+      }
+    };
+  };
 
   const loadOrderData = async () => {
     try {
       setLoading(true);
+      setError(null);
+      console.log('🌐 OrderTracker: Cargando datos del pedido desde API:', orderId);
 
-      // Si tenemos orderDetails desde la navegación, usar esos datos
-      if (orderDetails) {
-        const realOrderData = transformOrderDetails(orderDetails);
+      const apiResponse = await api.get(`/orders/${orderId}`);
+
+      if (apiResponse && apiResponse.id) {
+        console.log('✅ OrderTracker: Datos cargados desde API:', apiResponse);
+        const realOrderData = transformOrderDetails(apiResponse);
         setOrderData(realOrderData);
         setError(null);
       } else {
-        // Intentar cargar desde la API
-        try {
-          const response = await api.get(`/pedidos/${orderId}`);
-          const realOrderData = transformApiResponse(response);
-          setOrderData(realOrderData);
-          setError(null);
-        } catch (apiError) {
-          console.log('API no disponible, usando datos mock para testing');
-          // Fallback a datos mock
-          const data = mockOrderData[orderId];
-          if (data) {
-            setOrderData(data);
-            setError(null);
-          } else {
-            setError(`Pedido ${orderId} no encontrado`);
-          }
-        }
+        throw new Error('Datos del pedido no válidos');
       }
     } catch (err) {
-      setError(err.message);
+      console.error('❌ OrderTracker: Error cargando datos del pedido:', err);
+
+      // ✅ NUEVO: Usar datos mock como fallback para testing/desarrollo
+      if (orderId && (orderId.startsWith('SP') || orderId === 'SP001')) {
+        console.log('🎭 OrderTracker: Usando datos mock como fallback para:', orderId);
+        const mockData = {
+          id: orderId,
+          estado: 'PAGO_PROCESADO', // Estado inicial cuando solo tenemos el pago
+          cliente: {
+            nombre: user?.nombre ? `${user.nombre} ${user.apellido || ''}`.trim() : 'Usuario',
+            telefono: user?.telefono || '+54 11 0000-0000',
+            direccion: 'Dirección de entrega : Navarro 3684, C1419 CABA'
+          },
+          restaurante: {
+            nombre: 'Pizzería Güerrin',
+            direccion: 'Av. Corrientes 1368, C1043 CABA',
+            telefono: '+54 11 4371-8141'
+          },
+          repartidor: null, // Aún no asignado
+          productos: [
+            { nombre: 'Pedido en proceso', cantidad: 1, precio: 0 }
+          ],
+          total: 0,
+          tiempoEstimado: 30,
+          ubicacionRepartidor: null,
+          ubicacionDestino: {
+            lat: -34.60802877002906,
+            lng: -58.37037817016744
+          },
+          ubicacionRestaurante: {
+            lat: -34.604019345084936,
+            lng: -58.385949813495365
+          }
+        };
+
+        setOrderData(mockData);
+        setError(null);
+      } else {
+        setError('No se pudo cargar la información del pedido');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Transformar datos del pedido real a formato esperado
   const transformOrderDetails = (details) => {
     return {
-      id: details.id || 'SP' + Date.now(),
-      estado: details.estado || 'EN_CAMINO',
+      id: details.id,
+      estado: details.estado || 'PENDIENTE',
       cliente: {
-        nombre: user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : 'Usuario',
-        telefono: user?.telefono || '+54 11 0000-0000',
-        direccion: details.direccionEntrega || 'Casa Rosada, Balcarce 50, C1064AAB CABA'
+        nombre: details.user ? `${details.user.nombre} ${details.user.apellido}` : 'Usuario',
+        telefono: details.user?.telefono || '+54 11 0000-0000',
+        direccion: details.direccionEntrega || 'Dirección no disponible'
       },
       restaurante: {
-        nombre: details.restaurante?.nombre || 'Pizzería Güerrin',
-        direccion: details.restaurante?.direccion || 'Av. Corrientes 1368, C1043 CABA',
-        telefono: details.restaurante?.telefono || '+54 11 4371-8141'
+        nombre: details.restaurante?.nombre || 'Restaurante',
+        direccion: details.restaurante?.direccion || 'Dirección no disponible',
+        telefono: details.restaurante?.telefono || 'Teléfono no disponible'
       },
-      repartidor: {
-        nombre: details.repartidor?.nombre || 'Carlos Martinez',
-        telefono: details.repartidor?.telefono || '+54 11 5555-1234',
-        vehiculo: details.repartidor?.vehiculo || 'Moto Honda XR150'
-      },
-      productos: details.productos || cartItems.map(item => ({
-        nombre: item.name,
-        cantidad: item.quantity,
-        precio: item.price * item.quantity
-      })),
-      total: details.total || cartTotal,
-      tiempoEstimado: details.tiempoEstimado || 15,
-      ubicacionRepartidor: details.ubicacionRepartidor || {
-        lat: -34.60513444417913,
-        lng: -58.378509242618875
-      },
-      ubicacionDestino: details.ubicacionDestino || {
-        lat: -34.60802877002906,
-        lng: -58.37037817016744
-      },
-      ubicacionRestaurante: details.ubicacionRestaurante || {
-        lat: -34.604019345084936,
-        lng: -58.385949813495365
-      }
-    };
-  };
-
-  // Transformar respuesta de API a formato esperado
-  const transformApiResponse = (apiResponse) => {
-    return {
-      id: apiResponse.id,
-      estado: apiResponse.estado,
-      cliente: {
-        nombre: apiResponse.user?.nombre && apiResponse.user?.apellido ?
-          `${apiResponse.user.nombre} ${apiResponse.user.apellido}` : 'Usuario',
-        telefono: apiResponse.user?.telefono || '+54 11 0000-0000',
-        direccion: apiResponse.direccionEntrega || 'Dirección no disponible'
-      },
-      restaurante: {
-        nombre: apiResponse.restaurante?.nombre || 'Restaurante',
-        direccion: apiResponse.restaurante?.direccion || 'Dirección no disponible',
-        telefono: apiResponse.restaurante?.telefono || 'Teléfono no disponible'
-      },
-      repartidor: apiResponse.repartidor ? {
-        nombre: apiResponse.repartidor.nombre,
-        telefono: apiResponse.repartidor.telefono,
-        vehiculo: apiResponse.repartidor.vehiculo
+      repartidor: details.repartidor ? {
+        nombre: `${details.repartidor.nombre} ${details.repartidor.apellido || ''}`.trim(),
+        telefono: details.repartidor.telefono || '',
+        vehiculo: details.repartidor.vehiculo || 'Vehículo no especificado'
       } : null,
-      productos: apiResponse.productos || [],
-      total: apiResponse.total,
-      tiempoEstimado: apiResponse.tiempoEstimado,
-      ubicacionRepartidor: apiResponse.ubicacionRepartidor,
-      ubicacionDestino: apiResponse.ubicacionDestino,
-      ubicacionRestaurante: apiResponse.ubicacionRestaurante
+      productos: details.productos || [],
+      total: details.total || 0,
+      tiempoEstimado: details.tiempoEstimado || 30,
+      ubicacionRepartidor: details.ubicacionRepartidor,
+      ubicacionDestino: details.ubicacionDestino,
+      ubicacionRestaurante: details.ubicacionRestaurante
     };
   };
 
-  // Generar URL del mapa - versión mejorada con fallback inteligente
-  const generateMapUrl = () => {
-    if (!orderData) return null;
+  // HTML del mapa con marcadores
+  const getMapHTML = () => {
+    if (!orderData && !pedido) return '<div>Cargando mapa...</div>';
 
-    const { ubicacionRestaurante, ubicacionDestino, ubicacionRepartidor } = orderData;
+    const data = orderData || transformPedidoToOrderData(pedido);
+    if (!data) return '<div>No hay datos para mostrar en el mapa</div>';
 
-    // OPCIÓN 1: Intentar Google Maps Embed (requiere menos permisos)
-    if (ubicacionRestaurante && ubicacionDestino) {
-      const origin = `${ubicacionRestaurante.lat},${ubicacionRestaurante.lng}`;
-      const destination = `${ubicacionDestino.lat},${ubicacionDestino.lng}`;
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.js"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css" />
+        <style>
+          body, html { margin: 0; padding: 0; height: 100%; }
+          #map { height: 100vh; width: 100%; }
+        </style>
+      </head>
+      <body>
+        <div id="map"></div>
+        <script>
+          const map = L.map('map').setView([${data.ubicacionDestino.lat}, ${data.ubicacionDestino.lng}], 14);
+          
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+          }).addTo(map);
 
-      // URL más simple que requiere solo Maps Embed API (básica)
-      const basicMapsUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyANtxF1NVF9egwbnPXuYKB_zaSm03GkCmA&q=${destination}&zoom=15&center=${origin}`;
+          // Marcador del restaurante
+          L.marker([${data.ubicacionRestaurante.lat}, ${data.ubicacionRestaurante.lng}], {
+            icon: L.divIcon({
+              html: '<div style="background-color: #4CAF50; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white;"></div>',
+              iconSize: [20, 20],
+              className: 'custom-div-icon'
+            })
+          }).addTo(map).bindPopup('🍕 ${data.restaurante.nombre}');
 
-      console.log('🗺️ Intentando Google Maps Embed básico');
-      return basicMapsUrl;
-    }
+          // Marcador del destino
+          L.marker([${data.ubicacionDestino.lat}, ${data.ubicacionDestino.lng}], {
+            icon: L.divIcon({
+              html: '<div style="background-color: #2196F3; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white;"></div>',
+              iconSize: [20, 20],
+              className: 'custom-div-icon'
+            })
+          }).addTo(map).bindPopup('🏠 ${data.cliente.nombre}');
 
-    // OPCIÓN 2: Fallback con mapa estático mejorado (SIEMPRE FUNCIONA)
-    return generateAdvancedStaticMap();
-  };
-
-  // Generar mapa estático avanzado con ruta simulada muy realista
-  const generateAdvancedStaticMap = () => {
-    if (!orderData) return null;
-
-    const { ubicacionRestaurante, ubicacionDestino, ubicacionRepartidor } = orderData;
-
-    // Crear marcadores más grandes y visibles
-    let markers = '';
-
-    // Marcador del restaurante (Verde grande)
-    if (ubicacionRestaurante) {
-      markers += `&markers=color:green%7Clabel:🍕%7Csize:mid%7C${ubicacionRestaurante.lat},${ubicacionRestaurante.lng}`;
-    }
-
-    // Marcador del destino (Azul grande)
-    if (ubicacionDestino) {
-      markers += `&markers=color:blue%7Clabel:🏛️%7Csize:mid%7C${ubicacionDestino.lat},${ubicacionDestino.lng}`;
-    }
-
-    // Marcador del repartidor (Rojo grande) - solo si está en camino
-    if (ubicacionRepartidor && orderData.estado === 'EN_CAMINO') {
-      markers += `&markers=color:red%7Clabel:🏍️%7Csize:mid%7C${ubicacionRepartidor.lat},${ubicacionRepartidor.lng}`;
-    }
-
-    // Ruta muy realista siguiendo calles exactas de Buenos Aires
-    let path = '';
-    if (ubicacionRestaurante && ubicacionDestino) {
-      // Ruta detallada: Güerrin → Casa Rosada siguiendo calles reales
-      const routePoints = [
-        `${ubicacionRestaurante.lat},${ubicacionRestaurante.lng}`, // Güerrin (Corrientes 1368)
-        '-34.6037,-58.3820', // Corrientes y Callao
-        '-34.6044,-58.3797', // Corrientes y Uruguay  
-        '-34.6051,-58.3774', // Corrientes y Reconquista
-        '-34.6058,-58.3755', // Hacia Av. de Mayo
-        '-34.6076,-58.3743', // Av. de Mayo y Lima
-        '-34.6080,-58.3720', // Hacia Plaza de Mayo
-        `${ubicacionDestino.lat},${ubicacionDestino.lng}` // Casa Rosada
-      ];
-
-      path = `&path=color:0x1E90FF%7Cweight:5%7Cgeodesic:true%7C${routePoints.join('%7C')}`;
-    }
-
-    // Centrar el mapa en el punto medio
-    const centerLat = ((ubicacionRestaurante?.lat || 0) + (ubicacionDestino?.lat || 0)) / 2;
-    const centerLng = ((ubicacionRestaurante?.lng || 0) + (ubicacionDestino?.lng || 0)) / 2;
-
-    console.log('🗺️ Usando mapa estático avanzado con ruta detallada');
-    return `https://maps.googleapis.com/maps/api/staticmap?center=${centerLat},${centerLng}&zoom=14&size=400x300&maptype=roadmap${markers}${path}&key=AIzaSyANtxF1NVF9egwbnPXuYKB_zaSm03GkCmA`;
-  };
-
-  const mapHtml = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
-      <title>Seguimiento de Pedido</title>
-      <style>
-        body, html {
-          margin: 0;
-          padding: 0;
-          font-family: Arial, sans-serif;
-        }
-        #map {
-          height: 100vh;
-          width: 100%;
-        }
-        #info {
-          position: absolute;
-          top: 10px;
-          left: 10px;
-          background: rgba(255,255,255,0.9);
-          padding: 10px;
-          border-radius: 8px;
-          box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-          z-index: 1000;
-          font-size: 12px;
-        }
-        .marker-label {
-          background: white;
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-weight: bold;
-          font-size: 10px;
-        }
-      </style>
-      <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyANtxF1NVF9egwbnPXuYKB_zaSm03GkCmA&language=es&region=AR"></script>
-      <script>
-        let map;
-        let directionsRenderer;
-
-        function initMap() {
-          // Coordenadas exactas de tu pedido
-          const restaurante = {
-            lat: ${orderData?.ubicacionRestaurante?.lat || -34.604019345084936},
-            lng: ${orderData?.ubicacionRestaurante?.lng || -58.385949813495365}
-          };
-
-          const destino = {
-            lat: ${orderData?.ubicacionDestino?.lat || -34.60802877002906},
-            lng: ${orderData?.ubicacionDestino?.lng || -58.37037817016744}
-          };
-
-          const repartidor = {
-            lat: ${orderData?.ubicacionRepartidor?.lat || -34.60513444417913},
-            lng: ${orderData?.ubicacionRepartidor?.lng || -58.378509242618875}
-          };
-
-          // Crear mapa centrado entre origen y destino
-          const center = {
-            lat: (restaurante.lat + destino.lat) / 2,
-            lng: (restaurante.lng + destino.lng) / 2
-          };
-
-          map = new google.maps.Map(document.getElementById("map"), {
-            zoom: 15,
-            center: center,
-            mapTypeId: google.maps.MapTypeId.ROADMAP,
-            styles: [
-              {
-                featureType: "poi",
-                elementType: "labels",
-                stylers: [{ visibility: "off" }]
-              }
-            ]
-          });
-
-          // Marcador del restaurante (Verde)
-          new google.maps.Marker({
-            position: restaurante,
-            map: map,
-            title: "Pizzería Güerrin - Origen",
-            icon: {
-              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(\`
-                <svg width="30" height="30" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="15" cy="15" r="12" fill="#4CAF50" stroke="white" stroke-width="3"/>
-                  <text x="15" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">🍕</text>
-                </svg>\`),
-              scaledSize: new google.maps.Size(30, 30)
-            }
-          });
-
-          // Marcador del destino (Azul)
-          new google.maps.Marker({
-            position: destino,
-            map: map,
-            title: "Casa Rosada - Destino",
-            icon: {
-              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(\`
-                <svg width="30" height="30" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="15" cy="15" r="12" fill="#2196F3" stroke="white" stroke-width="3"/>
-                  <text x="15" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">🏛️</text>
-                </svg>\`),
-              scaledSize: new google.maps.Size(30, 30)
-            }
-          });
-
-          // Marcador del repartidor (Rojo) - solo si está en camino
-          ${orderData?.estado === 'EN_CAMINO' ? `
-          new google.maps.Marker({
-            position: repartidor,
-            map: map,
-            title: "Repartidor - ${orderData?.repartidor?.nombre || 'Carlos Martinez'}",
-            icon: {
-              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(\`
-                <svg width="35" height="35" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="17.5" cy="17.5" r="15" fill="#FF5722" stroke="white" stroke-width="3"/>
-                  <text x="17.5" y="23" text-anchor="middle" fill="white" font-size="14" font-weight="bold">🏍️</text>
-                </svg>\`),
-              scaledSize: new google.maps.Size(35, 35)
-            }
-          });
+          ${data.ubicacionRepartidor ? `
+          // Marcador del repartidor (solo si está en camino)
+          L.marker([${data.ubicacionRepartidor.lat}, ${data.ubicacionRepartidor.lng}], {
+            icon: L.divIcon({
+              html: '<div style="background-color: #FF6347; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white;"></div>',
+              iconSize: [20, 20],
+              className: 'custom-div-icon'
+            })
+          }).addTo(map).bindPopup('🏍️ ${data.repartidor?.nombre || 'Repartidor'}');
           ` : ''}
 
-          // Configurar el renderer de direcciones
-          directionsRenderer = new google.maps.DirectionsRenderer({
-            suppressMarkers: true, // No mostrar marcadores por defecto
-            polylineOptions: {
-              strokeColor: '#1976D2',
-              strokeWeight: 5,
-              strokeOpacity: 0.8
-            }
-          });
-          directionsRenderer.setMap(map);
+          // Ajustar vista para mostrar todos los marcadores
+          const group = new L.featureGroup([
+            L.marker([${data.ubicacionRestaurante.lat}, ${data.ubicacionRestaurante.lng}]),
+            L.marker([${data.ubicacionDestino.lat}, ${data.ubicacionDestino.lng}])
+            ${data.ubicacionRepartidor ? `, L.marker([${data.ubicacionRepartidor.lat}, ${data.ubicacionRepartidor.lng}])` : ''}
+          ]);
+          map.fitBounds(group.getBounds().pad(0.1));
+        </script>
+      </body>
+      </html>
+    `;
+  };
 
-          // Calcular y mostrar la ruta
-          const directionsService = new google.maps.DirectionsService();
-          
-          ${orderData?.estado === 'EN_CAMINO' ? `
-          // Si está en camino, ruta desde repartidor hasta destino
-          directionsService.route(
-            {
-              origin: repartidor,
-              destination: destino,
-              travelMode: google.maps.TravelMode.DRIVING,
-              avoidTolls: true,
-              region: 'AR'
-            },
-            (response, status) => {
-              if (status === google.maps.DirectionsStatus.OK) {
-                directionsRenderer.setDirections(response);
-                
-                // Calcular tiempo estimado
-                const route = response.routes[0];
-                const leg = route.legs[0];
-                console.log('Tiempo estimado:', leg.duration.text);
-                console.log('Distancia:', leg.distance.text);
-              } else {
-                console.error('Error calculando ruta desde repartidor:', status);
-                // Fallback: ruta completa desde restaurante
-                calcularRutaCompleta();
-              }
-            }
-          );
-          ` : `
-          // Si no está en camino, mostrar ruta completa
-          calcularRutaCompleta();
-          `}
-
-          function calcularRutaCompleta() {
-            directionsService.route(
-              {
-                origin: restaurante,
-                destination: destino,
-                travelMode: google.maps.TravelMode.DRIVING,
-                avoidTolls: true,
-                region: 'AR'
-              },
-              (response, status) => {
-                if (status === google.maps.DirectionsStatus.OK) {
-                  directionsRenderer.setDirections(response);
-                  
-                  // Información de la ruta
-                  const route = response.routes[0];
-                  const leg = route.legs[0];
-                  console.log('Ruta completa - Tiempo:', leg.duration.text, 'Distancia:', leg.distance.text);
-                } else {
-                  console.error('Error calculando ruta completa:', status);
-                  alert('No se pudo calcular la ruta: ' + status);
-                }
-              }
-            );
-          }
-
-          // Ajustar vista para mostrar todos los puntos
-          const bounds = new google.maps.LatLngBounds();
-          bounds.extend(restaurante);
-          bounds.extend(destino);
-          ${orderData?.estado === 'EN_CAMINO' ? 'bounds.extend(repartidor);' : ''}
-          map.fitBounds(bounds);
-          
-          // Agregar un poco de padding
-          setTimeout(() => {
-            map.panBy(0, -50);
-          }, 1000);
-        }
-
-        // Inicializar mapa cuando se carga la página
-        window.onload = initMap;
-      </script>
-    </head>
-    <body>
-      <div id="info">
-        <div><strong>Pedido #${orderData?.id || 'SP001'}</strong></div>
-        <div>Estado: ${orderData?.estado || 'EN_CAMINO'}</div>
-        <div>🍕 Pizzería Güerrin</div>
-        <div>🏛️ Casa Rosada</div>
-        ${orderData?.estado === 'EN_CAMINO' ? `<div>🏍️ ${orderData?.repartidor?.nombre || 'Repartidor'}</div>` : ''}
-      </div>
-      <div id="map"></div>
-    </body>
-    </html>
-  `;
-
-  const getEstadoColor = (estado) => {
-    switch (estado) {
-      case 'PENDIENTE': return '#FFA500';
-      case 'CONFIRMADO': return '#4CAF50';
-      case 'PREPARANDO': return '#2196F3';
-      case 'EN_CAMINO': return '#FF6347';
-      case 'ENTREGADO': return '#4CAF50';
-      case 'CANCELADO': return '#9E9E9E';
-      default: return '#9E9E9E';
+  const handleCallRestaurant = () => {
+    const telefono = orderData?.restaurante?.telefono;
+    if (telefono) {
+      Alert.alert(
+        'Llamar al Restaurante',
+        `¿Deseas llamar a ${orderData.restaurante.nombre}?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Llamar', onPress: () => console.log(`Llamando a ${telefono}`) }
+        ]
+      );
     }
-  };
-
-  const getEstadoTexto = (estado) => {
-    switch (estado) {
-      case 'PENDIENTE': return 'Pendiente de confirmación';
-      case 'CONFIRMADO': return 'Confirmado por el restaurante';
-      case 'PREPARANDO': return 'Preparando tu pedido';
-      case 'EN_CAMINO': return 'En camino hacia ti';
-      case 'ENTREGADO': return 'Pedido entregado';
-      case 'CANCELADO': return 'Pedido cancelado';
-      default: return 'Estado desconocido';
-    }
-  };
-
-  const handleSupport = () => {
-    console.log('Contactar soporte');
-    // Aquí implementarías la lógica de soporte
-  };
-
-  const handleHome = () => {
-    navigation.navigate('Home');
   };
 
   const handleCallDelivery = () => {
-    if (orderData?.repartidor?.telefono) {
-      console.log(`Llamar al repartidor: ${orderData.repartidor.telefono}`);
-      // Aquí implementarías la lógica para hacer la llamada
+    const telefono = orderData?.repartidor?.telefono || repartidor?.telefono;
+    if (telefono) {
+      Alert.alert(
+        'Llamar al Repartidor',
+        `¿Deseas llamar al repartidor?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Llamar', onPress: () => console.log(`Llamando a ${telefono}`) }
+        ]
+      );
     }
   };
 
-  if (loading) {
+  const handleGoHome = () => {
+    navigation.navigate('Home');
+  };
+
+  const handleSupport = () => {
+    Alert.alert(
+      'Soporte',
+      '¿Necesitas ayuda con tu pedido?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Contactar Soporte', onPress: () => console.log('Contactando soporte...') }
+      ]
+    );
+  };
+
+  // Mostrar loading mientras carga (solo si realmente está cargando algo)
+  if ((loading || (pedidoLoading && !orderData)) && !error) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#e91e63" />
+        <ActivityIndicator size="large" color="#FF6347" />
         <Text style={styles.loadingText}>Cargando información del pedido...</Text>
+        {!connected && (
+          <Text style={styles.connectionWarning}>
+            ⚠️ Reconectando con el servidor...
+          </Text>
+        )}
+        <Text style={styles.debugText}>
+          Debug: loading={loading.toString()}, pedidoLoading={pedidoLoading.toString()},
+          orderData={!!orderData}, pedido={!!pedido}
+        </Text>
       </View>
     );
   }
 
-  if (error) {
+  // Mostrar error si no hay datos
+  if (error && !orderData && !pedido) {
     return (
       <View style={styles.errorContainer}>
+        <FontAwesome name="exclamation-triangle" size={50} color="#FF6347" />
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={loadOrderData}>
           <Text style={styles.retryButtonText}>Reintentar</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.homeButton} onPress={handleHome}>
+        <TouchableOpacity style={styles.homeButton} onPress={handleGoHome}>
+          <FontAwesome name="home" size={16} color="white" />
           <Text style={styles.buttonText}>Volver al Inicio</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  if (!orderData) {
+  // Usar datos del socket si están disponibles, sino usar orderData
+  const displayData = orderData || transformPedidoToOrderData(pedido);
+
+  if (!displayData) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>No se encontró información del pedido</Text>
-        <TouchableOpacity style={styles.homeButton} onPress={handleHome}>
+        <Text style={styles.errorText}>No hay datos del pedido disponibles</Text>
+        <TouchableOpacity style={styles.homeButton} onPress={handleGoHome}>
+          <FontAwesome name="home" size={16} color="white" />
           <Text style={styles.buttonText}>Volver al Inicio</Text>
         </TouchableOpacity>
       </View>
     );
   }
-
-  const estadoColor = getEstadoColor(orderData.estado);
-  const estadoTexto = getEstadoTexto(orderData.estado);
 
   return (
     <View style={styles.container}>
-      {/* Header con estado del pedido */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Pedido #{orderData.id}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: estadoColor }]}>
-            <Text style={styles.statusText}>{orderData.estado}</Text>
-          </View>
-        </View>
-        <TouchableOpacity style={styles.refreshButton} onPress={loadOrderData}>
-          <Text style={styles.refreshButtonText}>🔄</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Información de estado */}
-      <View style={[styles.statusContainer, { backgroundColor: estadoColor }]}>
-        <Text style={styles.statusDescription}>{estadoTexto}</Text>
-        {orderData.tiempoEstimado && orderData.estado !== 'ENTREGADO' && (
-          <Text style={styles.estimatedTime}>
-            Tiempo estimado: {orderData.tiempoEstimado} minutos
+      <ScrollView style={styles.content}>
+        {/* Header con estado del pedido */}
+        <View style={[styles.statusHeader, { backgroundColor: estadoColor || '#FF6347' }]}>
+          <Text style={styles.statusText}>
+            {estadoTexto || 'Procesando Pedido'}
           </Text>
-        )}
-      </View>
-
-      {/* Información de direcciones */}
-      <ScrollView style={styles.addressContainer}>
-        {/* Dirección del Restaurante */}
-        <View style={styles.addressCard}>
-          <View style={styles.addressHeader}>
-            <FontAwesome name="cutlery" size={20} color="#4CAF50" />
-            <Text style={styles.addressTitle}>Restaurante (Origen)</Text>
-          </View>
-          <Text style={styles.restaurantName}>{orderData.restaurante.nombre}</Text>
-          <Text style={styles.addressText}>{orderData.restaurante.direccion}</Text>
-          {orderData.restaurante.telefono && (
-            <Text style={styles.phoneText}>📞 {orderData.restaurante.telefono}</Text>
+          <Text style={styles.orderId}>Pedido #{displayData.id}</Text>
+          <Text style={styles.estimatedTime}>
+            Tiempo estimado: {tiempoEstimado || displayData.tiempoEstimado} minutos
+          </Text>
+          {!connected && (
+            <Text style={styles.connectionStatus}>
+              🔄 Reconectando...
+            </Text>
           )}
         </View>
 
-        {/* Ubicación del Repartidor (si está en camino) */}
-        {orderData.estado === 'EN_CAMINO' && orderData.repartidor && (
+        {/* Mapa */}
+        <View style={styles.mapContainer}>
+          <Text style={styles.mapTitle}>📍 Seguimiento en Tiempo Real</Text>
+          <View style={styles.mapWrapper}>
+            {!isMapLoaded && (
+              <View style={styles.mapLoadingContainer}>
+                <ActivityIndicator size="large" color="#FF6347" />
+                <Text style={styles.mapLoadingText}>Cargando mapa...</Text>
+              </View>
+            )}
+            <WebView
+              source={{ html: getMapHTML() }}
+              style={[styles.map, !isMapLoaded && styles.hidden]}
+              onLoadEnd={() => setIsMapLoaded(true)}
+              javaScriptEnabled={true}
+              domStorageEnabled={true}
+            />
+          </View>
+
+          {/* Leyenda del mapa */}
+          <View style={styles.mapLegend}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#4CAF50' }]} />
+              <Text style={styles.legendText}>Restaurante</Text>
+            </View>
+            {(displayData.ubicacionRepartidor || tieneCoordenas) && (
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: '#FF6347' }]} />
+                <Text style={styles.legendText}>Repartidor</Text>
+              </View>
+            )}
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#2196F3' }]} />
+              <Text style={styles.legendText}>Destino</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Información del pedido */}
+        <View style={styles.addressContainer}>
+          {/* Restaurante */}
           <View style={styles.addressCard}>
             <View style={styles.addressHeader}>
-              <FontAwesome name="motorcycle" size={20} color="#FF6347" />
-              <Text style={styles.addressTitle}>Repartidor en Camino</Text>
-              <TouchableOpacity style={styles.callButton} onPress={handleCallDelivery}>
+              <FontAwesome name="cutlery" size={20} color="#4CAF50" />
+              <Text style={styles.addressTitle}>Restaurante</Text>
+              <TouchableOpacity style={styles.callButton} onPress={handleCallRestaurant}>
                 <FontAwesome name="phone" size={16} color="white" />
               </TouchableOpacity>
             </View>
-            <Text style={styles.deliveryName}>{orderData.repartidor.nombre}</Text>
-            <Text style={styles.vehicleText}>{orderData.repartidor.vehiculo}</Text>
-            <Text style={styles.locationText}>
-              📍 Ubicación actual: Lat {orderData.ubicacionRepartidor.lat.toFixed(4)},
-              Lng {orderData.ubicacionRepartidor.lng.toFixed(4)}
-            </Text>
-            {orderData.repartidor.telefono && (
-              <Text style={styles.phoneText}>📞 {orderData.repartidor.telefono}</Text>
+            <Text style={styles.restaurantName}>{displayData.restaurante.nombre}</Text>
+            <Text style={styles.addressText}>{displayData.restaurante.direccion}</Text>
+            {displayData.restaurante.telefono && (
+              <Text style={styles.phoneText}>📞 {displayData.restaurante.telefono}</Text>
             )}
           </View>
-        )}
 
-        {/* Dirección de Destino */}
-        <View style={styles.addressCard}>
-          <View style={styles.addressHeader}>
-            <FontAwesome name="map-marker" size={20} color="#2196F3" />
-            <Text style={styles.addressTitle}>Dirección de Entrega</Text>
-          </View>
-          <Text style={styles.customerName}>{orderData.cliente.nombre}</Text>
-          <Text style={styles.addressText}>{orderData.cliente.direccion}</Text>
-          {orderData.cliente.telefono && (
-            <Text style={styles.phoneText}>📞 {orderData.cliente.telefono}</Text>
-          )}
-        </View>
+          {/* Repartidor (si está asignado) */}
+          {((displayData.estado === 'EN_CAMINO' || estado === 'EN_CAMINO' || estado === 'ASIGNADO') &&
+            (displayData.repartidor || tieneRepartidor)) && (
+              <View style={styles.addressCard}>
+                <View style={styles.addressHeader}>
+                  <FontAwesome name="motorcycle" size={20} color="#FF6347" />
+                  <Text style={styles.addressTitle}>
+                    {estado === 'EN_CAMINO' ? 'Repartidor en Camino' : 'Repartidor Asignado'}
+                  </Text>
+                  <TouchableOpacity style={styles.callButton} onPress={handleCallDelivery}>
+                    <FontAwesome name="phone" size={16} color="white" />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.deliveryName}>
+                  {repartidor?.nombre || displayData.repartidor?.nombre}
+                </Text>
+                <Text style={styles.vehicleText}>
+                  {repartidor?.vehiculo || displayData.repartidor?.vehiculo}
+                </Text>
+                {tieneCoordenas && (
+                  <Text style={styles.locationText}>
+                    📍 Ubicación: Lat {coordenadas.latitud.toFixed(4)}, Lng {coordenadas.longitud.toFixed(4)}
+                  </Text>
+                )}
+                {(repartidor?.telefono || displayData.repartidor?.telefono) && (
+                  <Text style={styles.phoneText}>
+                    📞 {repartidor?.telefono || displayData.repartidor?.telefono}
+                  </Text>
+                )}
+              </View>
+            )}
 
-        {/* Resumen del pedido */}
-        <View style={styles.orderSummaryCard}>
-          <Text style={styles.summaryTitle}>Resumen del Pedido</Text>
-          {orderData.productos.map((producto, index) => (
-            <View key={index} style={styles.productItem}>
-              <Text style={styles.productName}>
-                {producto.cantidad}x {producto.nombre}
-              </Text>
-              <Text style={styles.productPrice}>${producto.precio}</Text>
+          {/* Dirección de Destino */}
+          <View style={styles.addressCard}>
+            <View style={styles.addressHeader}>
+              <FontAwesome name="map-marker" size={20} color="#2196F3" />
+              <Text style={styles.addressTitle}>Dirección de Entrega</Text>
             </View>
-          ))}
-          <View style={styles.totalContainer}>
-            <Text style={styles.totalText}>Total: ${orderData.total}</Text>
+            <Text style={styles.customerName}>{displayData.cliente.nombre}</Text>
+            <Text style={styles.addressText}>{displayData.cliente.direccion}</Text>
+            {displayData.cliente.telefono && (
+              <Text style={styles.phoneText}>📞 {displayData.cliente.telefono}</Text>
+            )}
           </View>
+
+          {/* Resumen del pedido */}
+          {displayData.productos && displayData.productos.length > 0 && (
+            <View style={styles.orderSummaryCard}>
+              <Text style={styles.summaryTitle}>Resumen del Pedido</Text>
+              {displayData.productos.map((producto, index) => (
+                <View key={index} style={styles.productItem}>
+                  <Text style={styles.productName}>
+                    {producto.cantidad}x {producto.nombre}
+                  </Text>
+                  <Text style={styles.productPrice}>${producto.precio}</Text>
+                </View>
+              ))}
+              <View style={styles.totalContainer}>
+                <Text style={styles.totalText}>Total: ${displayData.total}</Text>
+              </View>
+            </View>
+          )}
         </View>
       </ScrollView>
-
-      {/* Mapa */}
-      <View style={styles.mapContainer}>
-        <Text style={styles.mapTitle}>Ubicación en tiempo real</Text>
-        {!isMapLoaded && (
-          <View style={styles.mapLoadingContainer}>
-            <ActivityIndicator size="large" color="#e91e63" />
-            <Text style={styles.mapLoadingText}>Cargando mapa...</Text>
-          </View>
-        )}
-
-        <WebView
-          originWhitelist={['*']}
-          source={{ html: mapHtml }}
-          style={[styles.map, !isMapLoaded && styles.hidden]}
-          onLoadEnd={() => setIsMapLoaded(true)}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          startInLoadingState={true}
-          scalesPageToFit={true}
-        />
-
-        {/* Leyenda del mapa */}
-        <View style={styles.mapLegend}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#4CAF50' }]} />
-            <Text style={styles.legendText}>Restaurante</Text>
-          </View>
-          {orderData.estado === 'EN_CAMINO' && (
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#FF6347' }]} />
-              <Text style={styles.legendText}>Repartidor</Text>
-            </View>
-          )}
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#2196F3' }]} />
-            <Text style={styles.legendText}>Tu dirección</Text>
-          </View>
-        </View>
-      </View>
 
       {/* Botones de acción */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.supportButton} onPress={handleSupport}>
-          <FontAwesome name="headphones" size={20} color="#fff" />
+          <FontAwesome name="question-circle" size={16} color="white" />
           <Text style={styles.buttonText}>Soporte</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.homeButton} onPress={handleHome}>
-          <FontAwesome name="home" size={20} color="#fff" />
+        <TouchableOpacity style={styles.homeButton} onPress={handleGoHome}>
+          <FontAwesome name="home" size={16} color="white" />
           <Text style={styles.buttonText}>Inicio</Text>
         </TouchableOpacity>
       </View>
@@ -704,99 +539,81 @@ export default function OrderTracker() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#f5f5f5',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#f5f5f5',
   },
   loadingText: {
     marginTop: 15,
     fontSize: 16,
     color: '#666',
+    textAlign: 'center',
+  },
+  connectionWarning: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#FF6347',
+    textAlign: 'center',
+  },
+  debugText: {
+    marginTop: 10,
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+  },
+  connectionStatus: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+    marginTop: 5,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#f5f5f5',
     padding: 20,
   },
   errorText: {
     fontSize: 18,
-    color: '#f44336',
+    color: '#666',
     textAlign: 'center',
-    marginBottom: 20,
+    marginVertical: 20,
   },
   retryButton: {
-    backgroundColor: '#e91e63',
-    paddingHorizontal: 20,
+    backgroundColor: '#FF6347',
     paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 25,
-    marginBottom: 10,
+    marginBottom: 15,
   },
   retryButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 15,
-    paddingTop: 50,
-    paddingBottom: 15,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 5,
-  },
-  backButton: {
-    padding: 5,
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: '#333',
-  },
-  headerCenter: {
+  content: {
     flex: 1,
+  },
+  statusHeader: {
+    backgroundColor: '#FF6347',
+    padding: 20,
     alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
   },
   statusText: {
     color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  refreshButton: {
-    padding: 5,
-  },
-  refreshButtonText: {
     fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
-  statusContainer: {
-    padding: 15,
-    alignItems: 'center',
-  },
-  statusDescription: {
+  orderId: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    marginTop: 5,
     textAlign: 'center',
   },
   estimatedTime: {
@@ -804,6 +621,72 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 5,
     textAlign: 'center',
+  },
+  mapContainer: {
+    height: 250,
+    margin: 15,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  mapTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    padding: 10,
+    backgroundColor: '#f8f8f8',
+    textAlign: 'center',
+  },
+  mapWrapper: {
+    flex: 1,
+    position: 'relative',
+  },
+  mapLoadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    zIndex: 1,
+  },
+  mapLoadingText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#666',
+  },
+  map: {
+    flex: 1,
+  },
+  hidden: {
+    opacity: 0,
+  },
+  mapLegend: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 5,
+  },
+  legendText: {
+    fontSize: 12,
+    color: '#333',
   },
   addressContainer: {
     flex: 1,
@@ -921,68 +804,6 @@ const styles = StyleSheet.create({
     color: '#333',
     textAlign: 'right',
   },
-  mapContainer: {
-    height: 250,
-    margin: 15,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  mapTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-    padding: 10,
-    backgroundColor: '#f8f8f8',
-    textAlign: 'center',
-  },
-  mapLoadingContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    zIndex: 1,
-  },
-  mapLoadingText: {
-    marginTop: 10,
-    fontSize: 14,
-    color: '#666',
-  },
-  map: {
-    flex: 1,
-  },
-  hidden: {
-    opacity: 0,
-  },
-  mapLegend: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    padding: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 5,
-  },
-  legendText: {
-    fontSize: 12,
-    color: '#333',
-  },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -1021,3 +842,45 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 });
+
+// Datos mock de backup para testing (mantener para desarrollo)
+const mockOrderData = {
+  'SP001': {
+    id: 'SP001',
+    estado: 'EN_CAMINO',
+    cliente: {
+      nombre: 'Juan Pérez',
+      telefono: '+54 11 1234-5678',
+      direccion: 'Casa Rosada, Balcarce 50, C1064AAB CABA'
+    },
+    restaurante: {
+      nombre: 'Pizzería Güerrin',
+      direccion: 'Av. Corrientes 1368, C1043 CABA',
+      telefono: '+54 11 4371-8141'
+    },
+    repartidor: {
+      nombre: 'Carlos Martinez',
+      telefono: '+54 11 5555-1234',
+      vehiculo: 'Moto Honda XR150'
+    },
+    productos: [
+      { nombre: 'Pizza Napolitana', cantidad: 1, precio: 2200 },
+      { nombre: 'Fainá', cantidad: 1, precio: 800 },
+      { nombre: 'Coca-Cola 500ml', cantidad: 2, precio: 600 }
+    ],
+    total: 3600,
+    tiempoEstimado: 15,
+    ubicacionRepartidor: {
+      lat: -34.60513444417913,
+      lng: -58.378509242618875
+    },
+    ubicacionDestino: {
+      lat: -34.60802877002906,
+      lng: -58.37037817016744
+    },
+    ubicacionRestaurante: {
+      lat: -34.604019345084936,
+      lng: -58.385949813495365
+    }
+  }
+};

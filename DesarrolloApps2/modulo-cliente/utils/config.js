@@ -9,7 +9,7 @@ const API_URLS = {
   // Servidor en Producción
   production: 'http://35.170.238.185:8080/api',
   //production: 'https://client-back-production.up.railway.app/api',
-  
+
   // Servidor local (Desarrollo)
   local: {
     android: 'http://10.0.2.2:8080/api',  // Android Emulator
@@ -23,7 +23,7 @@ const WEBSOCKET_URLS = {
   // Servidor en Producción
   production: 'ws://35.170.238.185:8080/ws/order-tracking',
   //production: 'wss://client-back-production.up.railway.app/ws/order-tracking',
-  
+
   // Servidor local (Desarrollo)
   local: {
     android: 'ws://10.0.2.2:8080/ws/order-tracking',  // Android Emulator
@@ -42,7 +42,7 @@ const getApiUrl = () => {
 
   // Para desarrollo local
   console.log('🌐 Usando API local (Desarrollo)');
-  
+
   if (Platform.OS === 'android') {
     return API_URLS.local.android;
   } else if (Platform.OS === 'ios') {
@@ -63,7 +63,7 @@ const getWebSocketBaseUrl = () => {
 
   // Para desarrollo local
   console.log('🔌 Usando WebSocket local (Desarrollo)');
-  
+
   if (Platform.OS === 'android') {
     return WEBSOCKET_URLS.local.android;
   } else if (Platform.OS === 'ios') {
@@ -102,10 +102,10 @@ export const DEBUG_CONFIG = {
 // Función para construir la URL del WebSocket con autenticación
 export const getWebSocketUrl = (userId, token) => {
   const baseUrl = getWebSocketBaseUrl();
-  
+
   // Construir URL con parámetros de autenticación
   const wsUrl = `${baseUrl}?userId=${userId}&token=${encodeURIComponent(token)}`;
-  
+
   return wsUrl;
 };
 
@@ -126,7 +126,7 @@ export const showCurrentConfig = () => {
   console.log('⏰ Timeout:', API_CONFIG.TIMEOUT + 'ms');
   console.log('🛠️ Es desarrollo:', __DEV__);
   console.log('🚀 Usar producción:', USE_PRODUCTION_API);
-  
+
   return {
     api: API_CONFIG,
     websocket: WEBSOCKET_CONFIG,
@@ -141,7 +141,7 @@ export const showWebSocketConfig = () => {
   console.log('🌐 URL Base WS:', WEBSOCKET_CONFIG.BASE_URL);
   console.log('🏢 Entorno:', API_CONFIG.CURRENT_ENV);
   console.log('🔐 Autenticación: JWT via query params');
-  
+
   return {
     baseUrl: WEBSOCKET_CONFIG.BASE_URL,
     environment: API_CONFIG.CURRENT_ENV,
