@@ -18,44 +18,75 @@ function RestaurantCatalogue() {
   useEffect(() => {
   if (!context || !context.events) return;
 
-  // Filtramos todos los eventos stock.actualizado
-  const stockEvents = context.events.filter(event => event.topic === 'stock.actualizado');
+  // Filtrar eventos stock.actualizado válidos
+  const stockEvents = context.events.filter(
+    event => event.topic === 'stock.actualizado' &&
+             event.data &&
+             event.data.comercio &&
+             event.data.producto
+  );
+
   if (stockEvents.length === 0) return;
 
-  // Acumulamos todos los comercios y productos de TODOS los eventos recibidos
-  const acumuladorComercios = {};
+  setComercios((prevComercios) => {
+    // Usamos un mapa para facilitar la acumulación
+    const acumulador = {};
 
-  stockEvents.forEach(event => {
-    const { comercio, producto } = event.data.data;
-    if (!comercio || !producto) return;
-
-    if (!acumuladorComercios[comercio.comercio_id]) {
-      acumuladorComercios[comercio.comercio_id] = {
-        id: comercio.comercio_id,
-        nombre: comercio.nombre,
-        productos: [],
+    // Primero, clonar lo que ya teníamos
+    prevComercios.forEach((comercio) => {
+      acumulador[comercio.id] = {
+        ...comercio,
+        productos: [...comercio.productos],
       };
-    }
+    });
 
-    // Chequeamos si el producto ya existe
-    const existeProducto = acumuladorComercios[comercio.comercio_id].productos.some(p => p.id === producto.producto_id);
+    // Luego, procesar los eventos nuevos
+    stockEvents.forEach(event => {
+      const { comercio, producto } = event.data;
+      if (!comercio || !producto) return;
 
-    if (!existeProducto) {
-      acumuladorComercios[comercio.comercio_id].productos.push({
-        id: producto.producto_id,
-        nombre: producto.nombre_producto,
-        descripcion: producto.descripcion,
-        precio: producto.precio,
-      });
-    } else {
-      // Si querés actualizar producto, podés agregar lógica acá para reemplazarlo
-    }
+      const comercioId = comercio.comercio_id;
+
+      if (!acumulador[comercioId]) {
+        acumulador[comercioId] = {
+          id: comercioId,
+          nombre: comercio.nombre,
+          productos: [],
+        };
+      }
+
+      const existeProducto = acumulador[comercioId].productos.some(
+        (p) => p.id === producto.producto_id
+      );
+
+      if (!existeProducto) {
+        acumulador[comercioId].productos.push({
+          id: producto.producto_id,
+          nombre: producto.nombre_producto,
+          descripcion: producto.descripcion,
+          precio: producto.precio,
+        });
+      } else {
+        // Si querés actualizar el producto (precio, descripción), lo podés hacer acá.
+        // Ejemplo:
+        
+        acumulador[comercioId].productos = acumulador[comercioId].productos.map(p =>
+          p.id === producto.producto_id
+            ? {
+                ...p,
+                nombre: producto.nombre_producto,
+                descripcion: producto.descripcion,
+                precio: producto.precio,
+              }
+            : p
+        );
+        
+      }
+    });
+
+    // Devolvemos los valores acumulados como array
+    return Object.values(acumulador);
   });
-
-  // Convertimos el objeto a array para setear en estado
-  const comerciosArray = Object.values(acumuladorComercios);
-  setComercios(comerciosArray);
-
 }, [context?.events]);
 
 
@@ -89,7 +120,7 @@ function RestaurantCatalogue() {
 
       <ScrollView style={styles.container}>
         {comercios.length === 0 ? (
-          <Text style={styles.empty}>Esperando eventos de stock...</Text>
+          <Text style={styles.empty}>Esperando catalgo...</Text>
         ) : (
           comercios.map((c) => (
             <TouchableOpacity
