@@ -28,6 +28,15 @@ const Checkout = () => {
   }, []);
 
   const createOrderData = async () => {
+    // Obtener datos actualizados del usuario
+    let userApiData = null;
+    try {
+      userApiData = await api.get('/users/token');
+      console.log('✅ Datos de usuario obtenidos para checkout:', userApiData);
+    } catch (error) {
+      console.warn('⚠️ No se pudo obtener datos actualizados del usuario, usando Redux:', error);
+    }
+
     // Generar ID único para el pedido
     const orderId = 'SP' + Date.now().toString().slice(-6);
 
@@ -40,12 +49,12 @@ const Checkout = () => {
       fechaCreacion: now.toISOString(),
       estado: 'EN_CAMINO', // Estado inicial después del pago
 
-      // Datos del cliente (desde Redux)
+      // Datos del cliente (desde API preferentemente, si no Redux)
       cliente: {
-        nombre: user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : 'Usuario',
-        telefono: user?.telefono || '+54 11 0000-0000',
-        email: user?.email || 'usuario@email.com',
-        direccion: 'Casa Rosada, Balcarce 50, C1064AAB CABA' // Por defecto, idealmente desde selección del usuario
+        nombre: userApiData?.nombre && userApiData?.apellido ? `${userApiData.nombre} ${userApiData.apellido}` : (user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : 'Usuario'),
+        telefono: userApiData?.telefono || user?.telefono || '+54 11 0000-0000',
+        email: userApiData?.email || user?.email || 'usuario@email.com',
+        direccion: userApiData?.direccion || user?.direccion || 'Casa Rosada, Balcarce 50, C1064AAB CABA'
       },
 
       // Datos del restaurante (por defecto Güerrin)
