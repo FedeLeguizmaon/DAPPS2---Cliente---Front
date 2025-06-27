@@ -236,9 +236,45 @@ const Orders = () => {
     }
   };
 
+  const sendOrders = async () => {
+    try {
+      const response = await api.get('/api/pedidos');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log("Orders received successfully:", data);
+
+      const ordersToSend = data.map(order => ({
+        pedido_id: order.id,
+        productos: order.productos.map(product => ({
+          id: product.id,
+          nombre: product.nombre,
+          cantidad: product.cantidad,
+          precioActual: product.precioActual,
+          precioOriginal: product.precioOriginal
+        })),
+        fecha_creacion: order.fechaCreacion,
+        repartidor_id: order.repartidor,
+        email_comercio: order.localEmail
+      }));
+
+      const sendResponse = await api.post('/api/pedidos/enviar', { 
+        traceData: {
+            originModule: "orders-send",
+            traceId: `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+          },
+        body: { pedidos: ordersToSend }
+       });
+    } catch (error) {
+      console.error("Error sending orders:", error);
+    }
+  }
+
   // Llama a fetchOrders una vez que el componente se monta
   useEffect(() => {
     fetchOrders();
+    sendOrders();
   }, []); // El array vacío asegura que se ejecute solo una vez al montar
 
   const handleRateOrderPress = (orderId, currentRating) => {
