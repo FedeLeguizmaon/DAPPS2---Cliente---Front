@@ -16,46 +16,48 @@ function RestaurantCatalogue() {
   const [comercios, setComercios] = useState([]);
 
   useEffect(() => {
-    if (!context || !context.events) return;
+  if (!context || !context.events) return;
 
-    const stockEvents = context.events.filter(event => event.topic === 'stock.actualizado');
-    if (stockEvents.length === 0) return;
+  // Filtramos todos los eventos stock.actualizado
+  const stockEvents = context.events.filter(event => event.topic === 'stock.actualizado');
+  if (stockEvents.length === 0) return;
 
-    const latestEvent = stockEvents[stockEvents.length - 1];
-    const { comercio, producto } = latestEvent.data.data;
+  // Acumulamos todos los comercios y productos de TODOS los eventos recibidos
+  const acumuladorComercios = {};
+
+  stockEvents.forEach(event => {
+    const { comercio, producto } = event.data.data;
     if (!comercio || !producto) return;
 
-    setComercios(prev => {
-      const index = prev.findIndex(c => c.id === comercio.comercio_id);
-      const nuevoProducto = {
+    if (!acumuladorComercios[comercio.comercio_id]) {
+      acumuladorComercios[comercio.comercio_id] = {
+        id: comercio.comercio_id,
+        nombre: comercio.nombre,
+        productos: [],
+      };
+    }
+
+    // Chequeamos si el producto ya existe
+    const existeProducto = acumuladorComercios[comercio.comercio_id].productos.some(p => p.id === producto.producto_id);
+
+    if (!existeProducto) {
+      acumuladorComercios[comercio.comercio_id].productos.push({
         id: producto.producto_id,
         nombre: producto.nombre_producto,
         descripcion: producto.descripcion,
         precio: producto.precio,
-      };
+      });
+    } else {
+      // Si querés actualizar producto, podés agregar lógica acá para reemplazarlo
+    }
+  });
 
-      if (index === -1) {
-        return [...prev, {
-          id: comercio.comercio_id,
-          nombre: comercio.nombre,
-          productos: [nuevoProducto],
-        }];
-      } else {
-        const comercioExistente = prev[index];
-        const productoExiste = comercioExistente.productos.some(p => p.id === nuevoProducto.id);
-        const productosActualizados = productoExiste
-          ? comercioExistente.productos.map(p => p.id === nuevoProducto.id ? nuevoProducto : p)
-          : [...comercioExistente.productos, nuevoProducto];
+  // Convertimos el objeto a array para setear en estado
+  const comerciosArray = Object.values(acumuladorComercios);
+  setComercios(comerciosArray);
 
-        const updated = [...prev];
-        updated[index] = {
-          ...comercioExistente,
-          productos: productosActualizados,
-        };
-        return updated;
-      }
-    });
-  }, [context?.events]);
+}, [context?.events]);
+
 
   if (!context) {
     return (
