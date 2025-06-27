@@ -121,7 +121,7 @@ const Checkout = () => {
     try {
       // Evento 1: Pedido Creado
       console.log('📡 Enviando evento: Pedido Creado');
-      const eventoCrearResponse = await api.post('/api/pedido/events/creado', {
+      const eventoCrearResponse = await api.post('/pedido/events/creado', {
         pedidoId: Number(newOrderData.id.replace('SP', '')),
         comercio_id: Number(newOrderData.restaurante.id.replace('rest_', '')),
         cliente_nombre: newOrderData.cliente.nombre,
@@ -150,7 +150,7 @@ const Checkout = () => {
         paymentType = 'fiat';
       }
       
-      const eventoPagarResponse = await api.post('/api/pedido/events/pagar', {
+      const eventoPagarResponse = await api.post('/pedido/events/pagar', {
         fromEmail: newOrderData.cliente.email,
         toEmail: 'localPepas@gmail.com', // Email del restaurante/tenant
         amount: newOrderData.total.toString(), // Convertir a string como espera el backend
