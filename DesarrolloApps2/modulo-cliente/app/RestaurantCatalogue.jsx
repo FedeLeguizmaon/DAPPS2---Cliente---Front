@@ -1,97 +1,97 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { SocketContext } from './SocketContext';
 import Restaurante from './Restaurant.jsx';
-import { StyleSheet, View, Text, ScrollView } from 'react-native';
-import { ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, ActivityIndicator } from 'react-native';
 import { useWebSocketEvent } from './UseWebSocketEvents';
+ 
 function RestaurantCatalogue() {
   const context = useContext(SocketContext);
   const [allRestaurants, setAllRestaurants] = useState([]);
-  const catalogoEvent = useWebSocketEvent('Catalogo.ActualizadoTest');
-
+  const stockEvent = useWebSocketEvent('stock.actualizado');
+ 
   useEffect(() => {
-    if (!catalogoEvent || !catalogoEvent.data) return;
-
-    console.log('📦 Nuevo evento de catálogo recibido:', catalogoEvent);
-
-    const { tenant, catalogo } = catalogoEvent.data;
-    const productos = catalogo?.productos ?? [];
-
+    if (!stockEvent || !stockEvent.data) return;
+ 
+    console.log('📦 Nuevo evento recibido:', stockEvent);
+ 
+    const { comercio, producto, stock } = stockEvent.data;
+ 
+    const restaurantId = `comercio-${comercio.comercio_id}`;
+ 
     const restaurant = {
-      id: `tenant-${tenant.tenant_id}`,
-      name: tenant.nombre,
-      image: productos[0]?.imagenes?.[0]?.url ?? 'https://via.placeholder.com/150',
+      id: restaurantId,
+      name: comercio.nombre,
+      image: 'https://via.placeholder.com/150',
       deliveryTime: '20-30 min',
       distance: '1 km',
       rating: 4.5,
-      categories: [...new Set(productos.map(p => p.categoria))],
+      categories: [producto.categoria_nombre || 'Sin categoría'],
       fullData: {
-        id: `tenant-${tenant.tenant_id}`,
-        name: tenant.nombre,
-        image: productos[0]?.imagenes?.[0]?.url ?? 'https://via.placeholder.com/100',
-        deliveryTime: '20-30 min',
-        distance: '1 km',
+        name: comercio.nombre,
         categories: [
           {
-            name: 'Catálogo',
-            products: productos.map(p => ({
-              id: p.producto_id.toString(),
-              name: p.nombre_producto,
-              originalPrice: p.precio,
-              currentPrice: p.precio,
-              rating: 4.5,
-              reviews: 0,
-              image: p.imagenes?.[0]?.url ?? 'https://via.placeholder.com/300x200',
-              description: p.descripcion,
-              promociones: p.promociones ?? [],
-            })),
+            name: producto.categoria_nombre || 'Catálogo',
+            products: [
+              {
+                id: producto.producto_id.toString(),
+                name: producto.nombre_producto,
+                originalPrice: producto.precio,
+                currentPrice: producto.precio,
+                rating: 4.5,
+                reviews: 0,
+                image: 'https://via.placeholder.com/300x200',
+                description:
+                  producto.descripcion + ` (Stock actualizado: ${stock.cantidad_nueva})`,
+                promociones: [],
+              },
+            ],
           },
         ],
       },
     };
-
+ 
     setAllRestaurants((prev) => {
       const filtered = prev.filter((r) => r.id !== restaurant.id);
       return [...filtered, restaurant];
     });
-  }, [catalogoEvent]);
-
+  }, [stockEvent]);
+ 
   if (!context) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#e91e63" />
-        <Text style={styles.loadingText}>Conectando...</Text>
-        <Text style={styles.debugText}>Verificando SocketProvider...</Text>
-      </View>
+<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+<ActivityIndicator size="large" color="#e91e63" />
+<Text>Conectando...</Text>
+<Text>Verificando SocketProvider...</Text>
+</View>
     );
   }
-
+ 
   const { connected } = context;
-
+ 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Catálogo de Restaurantes</Text>
-      <Text style={styles.status}>
+<ScrollView style={styles.container}>
+<Text style={styles.title}>Catálogo de Restaurantes</Text>
+<Text style={styles.status}>
         {connected ? '🟢 Conectado' : '🔴 Desconectado'}
-      </Text>
-
+</Text>
+ 
       {allRestaurants.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>
+<View style={styles.emptyContainer}>
+<Text style={styles.emptyText}>
             Esperando restaurantes... {connected ? '⏳' : '📡'}
-          </Text>
-        </View>
+</Text>
+</View>
       ) : (
-        <View>
-          <Text style={styles.countText}>
+<View>
+<Text style={styles.countText}>
             📍 {allRestaurants.length} restaurante(s) encontrado(s)
-          </Text>
+</Text>
           {allRestaurants.map((restaurant) => (
-            <Restaurante key={restaurant.id} data={restaurant.fullData} />
+<Restaurante key={restaurant.id} data={restaurant.fullData} />
           ))}
-        </View>
+</View>
       )}
-    </ScrollView>
+</ScrollView>
   );
 }
 const styles = StyleSheet.create({
